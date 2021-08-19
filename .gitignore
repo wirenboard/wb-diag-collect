@@ -1,0 +1,13 @@
+*.vscode*
+*.pyc*
+*firmwares*
+*.wbfw*
+*.egg*
+*.deb
+*.pyc
+*.zip
+
+debian/*
+.pybuild
+
+venv
