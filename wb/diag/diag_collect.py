@@ -1,28 +1,31 @@
+import argparse
 import sys
 from .json_stats import *
 from .lines_stats import *
 import subprocess
 import shutil
+import yaml
+from yaml.loader import SafeLoader
+
+DEFAULT_CONF_ROUTE = '/usr/share/wb-diag-collect/wb-diag-collect.conf'
 
 
-def collect_data(data: dict):
-    #  TODO : список метрик в конфиге, собирать метрики в цикле
-    current_date_and_time_json = current_date_and_time_to_json()
-    df_json = df_to_json()
-    core_version_json = core_version_to_json()
-    system_ctl_json = systemctl_to_json()
+def collect_data(data: dict, commands, prebuild_commands, files):
 
-    data['current_date_and_time'] = current_date_and_time_json
-    data['system_ctl'] = system_ctl_json
-    data['df'] = df_json
-    data['core_version'] = core_version_json
+    if 'current_date_and_time_to_json' in prebuild_commands:
+        data['current_date_and_time'] = current_date_and_time_to_json()
+    if 'current_date_and_time_to_json' in prebuild_commands:
+        data['df'] = df_to_json()
+    if 'current_date_and_time_to_json' in prebuild_commands:
+        data['core_version'] = core_version_to_json()
 
-    ps_aux_str = ps_aux_to_stdout()
-    dpkg_l_str = dpkg_l_to_stdout()
-    interrupts_str = interrupts_to_stdout()
-    data['ps_aux'] = ps_aux_str
-    data['dpkg_l'] = dpkg_l_str
-    data['interrupts_str'] = interrupts_str
+    for file in files:
+        stdouts = get_stdouts_by_regex(file)
+        for stdout in stdouts:
+            data[stdout] = stdouts[stdout]
+
+    for command in commands:
+        data[command['filename']] = get_stdout(command['command'])
 
 
 def create_tmp_folder():
@@ -33,11 +36,25 @@ def delete_tmp_folder():
     subprocess.Popen('rm -rd wb-diag-tmp', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 
-def main():
+def main(argv=sys.argv):
     try:
+        parser = argparse.ArgumentParser(description='The tool to send metrics')
+
+        parser.add_argument('-c', '--config', action='store', help='get data from config')
+
+        args = parser.parse_args(argv[1:])
+
+        conf_route = DEFAULT_CONF_ROUTE if args.config is None else args.config
+
+        with open(conf_route) as f:
+            yaml_data = yaml.load(f, Loader=SafeLoader)
+            commands = yaml_data['commands']
+            files = yaml_data['files']
+            prebuild_commands = set(yaml_data['prebuild_commands'])
+
         data = {}
         create_tmp_folder()
-        collect_data(data)
+        collect_data(data, commands, prebuild_commands, files)
 
         for filename in data:
             with open('wb-diag-tmp/{0}.log'.format(filename), 'w') as file:
@@ -50,7 +67,10 @@ def main():
                             break
                         file.write(line.decode())
 
-        shutil.make_archive('diag_output_<there_will_be_date>', 'zip', 'wb-diag-tmp')
+        date = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
+        shutil.make_archive('diag_output_{0}'.format(date), 'zip', 'wb-diag-tmp')
+    except FileNotFoundError:
+        print('Config not found.')
     finally:
         delete_tmp_folder()
 

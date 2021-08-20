@@ -1,5 +1,6 @@
 import json
 import subprocess
+import datetime
 
 
 def current_date_and_time_to_json():
@@ -25,9 +26,9 @@ def core_version_to_json():
          'kernel release': controller_info[2],
          'kernel version': ' '.join(controller_info[3:11]),
          'machine hardware name': controller_info[11],
-         'processor type (non-portable)': controller_info[12],
-         'hardware platform (non-portable)': controller_info[13],
-         'operating system': controller_info[14]
+         # 'processor type (non-portable)': controller_info[12],  # TODO: понять, как лучше
+         # 'hardware platform (non-portable)': controller_info[13],
+         'operating system': controller_info[12]
          }
     return json.dumps(d, indent=4)
 
@@ -53,8 +54,3 @@ def df_to_json():
         df_data[one_fs_data['Mounted on']] = one_fs_data
 
     return json.dumps(df_data, indent=4)
-
-
-def systemctl_to_json():
-    p = subprocess.Popen('systemctl list-units --all --output=json', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    return p.stdout.readlines()[0].decode()
