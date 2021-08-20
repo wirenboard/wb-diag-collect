@@ -6,15 +6,17 @@ def get_stdout(command: str):
     return p.stdout
 
 
-def get_stdouts_by_regex(regex: str):
+def get_filenames_by_regex(regex: str):
     p = subprocess.Popen('find {0} -type f'.format(regex), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     cmd_res = p.stdout.readlines()
-    stdouts = {}
+    filenames = {}
 
     for line in cmd_res:
-        filename = line.decode()
-        p2 = subprocess.Popen('cat {0}'.format(filename), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        filename = filename.replace('/', ' ').split()[-1].strip()
-        stdouts[filename] = p2.stdout
+        full_filename = line.decode()
+        filename = full_filename.replace('/', ' ').split()[-1].strip()
+        filenames[filename] = full_filename
 
-    return stdouts
+    return filenames
+
+
+
