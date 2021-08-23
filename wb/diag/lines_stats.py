@@ -12,7 +12,9 @@ def get_filenames_by_regex(regex: str):
     filenames = {}
 
     for line in cmd_res:
-        full_filename = line.decode()
+        full_filename = line.decode().strip()
+        if full_filename[0:5] == 'find:':
+            break
         filename = full_filename.replace('/', ' ').split()[-1].strip()
         filenames[filename] = full_filename
 

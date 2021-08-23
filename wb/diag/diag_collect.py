@@ -30,7 +30,7 @@ def delete_tmp_folder():
 
 def main(argv=sys.argv):
     try:
-        parser = argparse.ArgumentParser(description='The tool to send metrics')
+        parser = argparse.ArgumentParser(description='The tool for collecting diagnostic data')
         parser.add_argument('-c', '--config', action='store', help='get data from config')
         args = parser.parse_args(argv[1:])
         conf_route = DEFAULT_CONF_ROUTE if args.config is None else args.config
@@ -44,10 +44,11 @@ def main(argv=sys.argv):
         create_tmp_folder()
         collect_data(data, commands, files)
         for filename in data:
-            with open('wb-diag-tmp/{0}.log'.format(filename), 'w') as file:
-                if type(data[filename]) is str:
-                    subprocess.Popen('cp {0} wb-diag-tmp/{1}'.format(data[filename], filename), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                else:
+            if type(data[filename]) is str:
+                p = subprocess.Popen('cp {0} wb-diag-tmp/{1}'.format(data[filename], filename), shell=True,
+                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            else:
+                with open('wb-diag-tmp/{0}.log'.format(filename), 'w') as file:
                     file.write(data[filename].read().decode())
 
         date = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
@@ -56,6 +57,7 @@ def main(argv=sys.argv):
         print('Config not found.')
     finally:
         delete_tmp_folder()
+        pass
 
 
 if __name__ == '__main__':
