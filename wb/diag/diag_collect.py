@@ -1,63 +1,34 @@
 import argparse
-import datetime
 import sys
-from .lines_stats import *
-import subprocess
-import shutil
-import yaml
-from yaml.loader import SafeLoader
-
-DEFAULT_CONF_ROUTE = '/usr/share/wb-diag-collect/wb-diag-collect.conf'
-
-
-def collect_data(data: dict, commands, files):
-    for file in files:
-        filenames = get_filenames_by_regex(file)
-        for filename in filenames:
-            data[filename] = filenames[filename]
-
-    for command in commands:
-        data[command['filename']] = get_stdout(command['command'])
-
-
-def create_tmp_folder():
-    subprocess.Popen('mkdir wb-diag-tmp', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-
-def delete_tmp_folder():
-    subprocess.Popen('rm -rd wb-diag-tmp', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+from .server import *
+from paho.mqtt import client as mqtt_client
 
 
 def main(argv=sys.argv):
+    parser = argparse.ArgumentParser(description='The tool for collecting diagnostic data')
+    parser.add_argument('-c', '--config', action='store', help='get data from config')
+    parser.add_argument('-s', '--server', action='store_true', help='run server')
+    parser.add_argument('output_filename', metavar='output_filename', type=str, nargs=1, help='output filename')
+
+    args = parser.parse_args(argv[1:])
+    conf_path = args.config
     try:
-        parser = argparse.ArgumentParser(description='The tool for collecting diagnostic data')
-        parser.add_argument('-c', '--config', action='store', help='get data from config')
-        args = parser.parse_args(argv[1:])
-        conf_route = DEFAULT_CONF_ROUTE if args.config is None else args.config
+        if args.server:
+            client = mqtt_client.Client('python-mqtt-wb-diag')
+            rpc_server = TMQTTRPCServer(client, 'diag')
 
-        with open(conf_route) as f:
-            yaml_data = yaml.load(f, Loader=SafeLoader)
-            commands = yaml_data['commands']
-            files = yaml_data['files']
+            client.connect('127.0.0.1', 1883)
+            client.on_message = rpc_server.on_mqtt_message
+            rpc_server.setup()
 
-        data = {}
-        create_tmp_folder()
-        collect_data(data, commands, files)
-        for filename in data:
-            if type(data[filename]) is str:
-                p = subprocess.Popen('cp {0} wb-diag-tmp/{1}'.format(data[filename], filename), shell=True,
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            else:
-                with open('wb-diag-tmp/{0}.log'.format(filename), 'w') as file:
-                    file.write(data[filename].read().decode())
-
-        date = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
-        shutil.make_archive('diag_output_{0}'.format(date), 'zip', 'wb-diag-tmp')
+            while 1:
+                rc = client.loop()
+                if rc != 0:
+                    break
+        else:
+            collect_data_with_conf(conf_path, args.output_filename[0])
     except FileNotFoundError:
-        print('Config not found.')
-    finally:
-        delete_tmp_folder()
-        pass
+        return 2
 
 
 if __name__ == '__main__':

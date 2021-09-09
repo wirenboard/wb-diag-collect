@@ -1,0 +1,36 @@
+from mqttrpc import MQTTRPCResponseManager, dispatcher
+
+from .collecting import collect_data_with_conf
+import base64
+
+
+@dispatcher.add_method
+def diag():
+    filename = collect_data_with_conf()
+    diag_file = open("{0}".format(filename), "rb")
+    diag_bytes = diag_file.read()
+    diag_bytes_base64 = base64.b64encode(diag_bytes)
+    diag_file.close()
+    return diag_bytes_base64.decode()
+
+
+class TMQTTRPCServer(object):
+    def __init__(self, client, driver_id):
+        self.client = client
+        self.driver_id = driver_id
+
+    def on_mqtt_message(self, mosq, obj, msg):
+        parts = msg.topic.split('/')
+        service_id = parts[4]
+        method_id = parts[5]
+        client_id = parts[6]
+
+        response = MQTTRPCResponseManager.handle(msg.payload, service_id, method_id, dispatcher)
+
+        self.client.publish("/rpc/v1/%s/%s/%s/%s/reply" % (self.driver_id, service_id, method_id, client_id), response.json)
+
+    def setup(self):
+        for service, method in dispatcher.keys():
+            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), "1", retain=True)
+
+            self.client.subscribe("/rpc/v1/%s/%s/%s/+" % (self.driver_id, service, method))
