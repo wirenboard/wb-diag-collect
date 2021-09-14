@@ -11,10 +11,12 @@ Package: python3-wb-diag-collect
 Section: python
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}, python3-yaml, python3-mqttrpc
-Description: python3 library for collecting data and logs
+Description: python3 library for one-click diagnostic data
+ collector for Wiren Board
 
 Package: wb-diag-collect
 Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${python3:Depends}, python3-wb-diag-collect (= ${binary:Version})
-Description: Wirenboard collector of data and logs
+Description: one-click diagnostic data collector for Wiren Board,
+ generating archive with data

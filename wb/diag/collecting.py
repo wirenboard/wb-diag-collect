@@ -1,3 +1,4 @@
+import datetime
 import subprocess
 import shutil
 from tempfile import TemporaryDirectory
@@ -43,6 +44,23 @@ def collect_data(commands, files):
     for command in commands:
         data[command['filename']] = get_stdout(command['command'])
 
+    data = dict(data, **collect_all_services_last_logs())
+
+    return data
+
+
+def collect_all_services_last_logs(n=20):
+    p = get_stdout('systemctl list-unit-files --no-pager | grep .service')
+    cmd_res = p.readlines()
+    services = []
+    for line in cmd_res:
+        service = line.decode().strip()
+        services.append(service[0: service.find('.service') + 8])
+
+    data = {}
+    for serv in services:
+        data['service_log_{0}'.format(serv)] = get_stdout('journalctl -u {0} --no-pager -n {1}'.format(serv, n))
+
     return data
 
 
@@ -59,12 +77,14 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
                 if type(data[filename]) is str:
                     shutil.copyfile(data[filename], '{0}/{1}'.format(tmpdir, filename))
                 else:
-                    with open('{1}/{0}.log'.format(filename, tmpdir), 'wb') as file:
+                    with open('{0}/{1}.log'.format(tmpdir, filename), 'wb') as file:
                         file.write(data[filename].read())
 
-            shutil.make_archive(output_filename, 'zip', tmpdir)
-
-        return '{0}.zip'.format(output_filename)
-    except FileNotFoundError:
-        print('Config not found.')
-        raise FileNotFoundError()
+            date = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
+            return shutil.make_archive('{0}_{1}'.format(output_filename, date), 'zip', tmpdir)
+    except FileNotFoundError as e:
+        print('Config {0} not found.'.format(e.filename))
+        raise
+    except OSError as e:
+        print(e.filename)
+        raise

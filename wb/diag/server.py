@@ -1,17 +1,14 @@
 from mqttrpc import MQTTRPCResponseManager, dispatcher
 
 from .collecting import collect_data_with_conf
-import base64
+import shutil
 
 
 @dispatcher.add_method
 def diag():
     filename = collect_data_with_conf()
-    diag_file = open("{0}".format(filename), "rb")
-    diag_bytes = diag_file.read()
-    diag_bytes_base64 = base64.b64encode(diag_bytes)
-    diag_file.close()
-    return diag_bytes_base64.decode()
+    newfilename = '/var/www{0}'.format(filename)
+    return shutil.copyfile(filename, newfilename)
 
 
 class TMQTTRPCServer(object):
