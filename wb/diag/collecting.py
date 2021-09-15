@@ -95,9 +95,9 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             collect_data(commands, files, service_choice, service_names, service_lines_number, tmpdir)
 
             with open('/var/lib/wirenboard/short_sn.conf', 'r') as f:
-                additional_part_of_name = f.readline()
+                additional_part_of_name = f.readline().strip()
 
-            additional_part_of_name += datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
+            additional_part_of_name += '_' + datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
 
             if server:
                 return shutil.make_archive('/var/www/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
