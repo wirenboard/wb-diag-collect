@@ -6,9 +6,7 @@ import shutil
 
 @dispatcher.add_method
 def diag():
-    filename = collect_data_with_conf()
-    newfilename = '/var/www{0}'.format(filename)
-    return shutil.copyfile(filename, newfilename)
+    return collect_data_with_conf()
 
 
 class TMQTTRPCServer(object):

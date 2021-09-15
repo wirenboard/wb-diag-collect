@@ -9,6 +9,15 @@ from yaml.loader import SafeLoader
 DEFAULT_CONF_PATH = '/usr/share/wb-diag-collect/wb-diag-collect.conf'
 
 
+def write_output_in_file(command, filename):
+    with open('{0}.log'.format(filename), 'w') as file:
+        if type(command) is str:
+            subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT)
+        else:
+            for comm in command:
+                subprocess.Popen(comm, shell=True, stdout=file, stderr=subprocess.STDOUT)
+
+
 def get_stdout(command: str):
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return p.stdout
@@ -34,57 +43,69 @@ def get_filenames_by_regex(regex: str):
         print('No files for regex "{0}"'.format(regex))
 
 
-def collect_data(commands, files):
+def collect_data(commands, files, service_choice, service_names, service_lines_number, dir):
     data = {}
     for file in files:
         filenames = get_filenames_by_regex(file) or {}
         for filename in filenames:
             data[filename] = filenames[filename]
+    for filename in data:
+        shutil.copyfile(data[filename], '{0}/{1}'.format(dir, filename))
 
     for command in commands:
-        data[command['filename']] = get_stdout(command['command'])
+        write_output_in_file(command['command'], '{0}/{1}'.format(dir, command['filename']))
 
-    data = dict(data, **collect_all_services_last_logs())
+    if service_lines_number > 0:
+        collect_all_services_last_logs(dir, service_choice, service_names, service_lines_number)
 
-    return data
 
+def collect_all_services_last_logs(dir, service_choice, service_names, n=20):
+    if service_choice == "list":
+        services = service_names
+    else:
+        if service_choice == "all":
+            p = get_stdout('systemctl list-unit-files --no-pager | grep .service')
+        elif service_choice == "wb":
+            p = get_stdout('systemctl list-unit-files --no-pager | grep .service | grep wb')
 
-def collect_all_services_last_logs(n=20):
-    p = get_stdout('systemctl list-unit-files --no-pager | grep .service')
-    cmd_res = p.readlines()
-    services = []
-    for line in cmd_res:
-        service = line.decode().strip()
-        services.append(service[0: service.find('.service') + 8])
+        cmd_res = p.readlines()
+        services = []
+        for line in cmd_res:
+            service = line.decode().strip()
+            services.append(service[0: service.find('.service') + 8])
 
-    data = {}
+    commands = []
     for serv in services:
-        data['service_log_{0}'.format(serv)] = get_stdout('journalctl -u {0} --no-pager -n {1}'.format(serv, n))
+        commands.append('journalctl -u {0} --no-pager -n {1}'.format(serv, n))
 
-    return data
+    write_output_in_file(commands, '{0}/services_log'.format(dir))
 
 
-def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_output'):
+def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_output', server=True):
     try:
         with open(conf_path or DEFAULT_CONF_PATH) as f:
             yaml_data = yaml.load(f, Loader=SafeLoader)
-            commands = yaml_data['commands']
-            files = yaml_data['files']
+            commands = yaml_data['commands'] or []
+            files = yaml_data['files'] or []
+            service_lines_number = yaml_data['services']['number'] or 0
+            service_choice = yaml_data['services']['choice'] or 'all'
+            service_names = yaml_data['services']['names']
 
         with TemporaryDirectory() as tmpdir:
-            data = collect_data(commands, files)
-            for filename in data:
-                if type(data[filename]) is str:
-                    shutil.copyfile(data[filename], '{0}/{1}'.format(tmpdir, filename))
-                else:
-                    with open('{0}/{1}.log'.format(tmpdir, filename), 'wb') as file:
-                        file.write(data[filename].read())
+            collect_data(commands, files, service_choice, service_names, service_lines_number, tmpdir)
 
-            date = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
-            return shutil.make_archive('{0}_{1}'.format(output_filename, date), 'zip', tmpdir)
+            with open('/var/lib/wirenboard/short_sn.conf', 'r') as f:
+                additional_part_of_name = f.readline()
+
+            additional_part_of_name += datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
+
+            if server:
+                return shutil.make_archive('/var/www/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+            else:
+                return shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
     except FileNotFoundError as e:
-        print('Config {0} not found.'.format(e.filename))
+        print('File "{0}" not found.'.format(e.filename))
         raise
     except OSError as e:
-        print(e.filename)
+        print('OSError: with file {0}'.format(e.filename))
         raise
