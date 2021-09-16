@@ -40,6 +40,7 @@ def main(argv=sys.argv):
     except FileNotFoundError:
         return 2
     except OSError as e:
+        print(e.strerror)
         return e.errno
 
 

@@ -1,2 +1,3 @@
 wb-diag-collect /usr/bin
 wb-diag-collect.conf /usr/share/wb-diag-collect
+.htaccess /var/www/diag
