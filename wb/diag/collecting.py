@@ -90,7 +90,7 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             yaml_data = yaml.load(f, Loader=SafeLoader)
             commands = yaml_data['commands'] or []
             files = yaml_data['files'] or []
-            service_lines_number = yaml_data['journald_logs']['number'] or 0
+            service_lines_number = yaml_data['journald_logs']['lines_number'] or 0
             service_names = yaml_data['journald_logs']['names']
 
         with TemporaryDirectory() as tmpdir:
