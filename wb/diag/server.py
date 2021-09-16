@@ -1,3 +1,5 @@
+import subprocess
+
 from mqttrpc import MQTTRPCResponseManager, dispatcher
 
 from .collecting import collect_data_with_conf
@@ -7,6 +9,10 @@ import shutil
 @dispatcher.add_method
 def diag():
     return collect_data_with_conf()
+
+
+def clear_directory():
+    subprocess.Popen('rm /var/www/diag/*.zip', shell=True)
 
 
 class TMQTTRPCServer(object):
@@ -19,6 +25,8 @@ class TMQTTRPCServer(object):
         service_id = parts[4]
         method_id = parts[5]
         client_id = parts[6]
+
+        clear_directory()
 
         response = MQTTRPCResponseManager.handle(msg.payload, service_id, method_id, dispatcher)
 
