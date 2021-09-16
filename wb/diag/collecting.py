@@ -2,6 +2,7 @@ import datetime
 import subprocess
 import shutil
 from tempfile import TemporaryDirectory
+from fnmatch import fnmatch
 
 import yaml
 from yaml.loader import SafeLoader
@@ -43,7 +44,7 @@ def get_filenames_by_regex(regex: str):
         print('No files for regex "{0}"'.format(regex))
 
 
-def collect_data(commands, files, service_choice, service_names, service_lines_number, dir):
+def collect_data(commands, files, service_names, service_lines_number, dir):
     data = {}
     for file in files:
         filenames = get_filenames_by_regex(file) or {}
@@ -56,23 +57,25 @@ def collect_data(commands, files, service_choice, service_names, service_lines_n
         write_output_in_file(command['command'], '{0}/{1}'.format(dir, command['filename']))
 
     if service_lines_number > 0:
-        collect_all_services_last_logs(dir, service_choice, service_names, service_lines_number)
+        collect_all_services_last_logs(dir, service_names, service_lines_number)
 
 
-def collect_all_services_last_logs(dir, service_choice, service_names, n=20):
-    if service_choice == "list":
-        services = service_names
-    else:
-        if service_choice == "all":
-            p = get_stdout('systemctl list-unit-files --no-pager | grep .service')
-        elif service_choice == "wb":
-            p = get_stdout('systemctl list-unit-files --no-pager | grep .service | grep wb')
+def check_regex_list(service_name, service_names):
+    for serv_name in service_names:
+        if fnmatch(service_name, serv_name):
+            return True
+    return False
 
-        cmd_res = p.readlines()
-        services = []
-        for line in cmd_res:
-            service = line.decode().strip()
-            services.append(service[0: service.find('.service') + 8])
+
+def collect_all_services_last_logs(dir, service_names, n=20):
+    p = get_stdout('systemctl list-unit-files --no-pager | grep .service')
+
+    cmd_res = p.readlines()
+    services = []
+    for line in cmd_res:
+        service = line.decode().strip().split()[0]
+        if check_regex_list(service, service_names):
+            services.append(service)
 
     commands = []
     for serv in services:
@@ -87,12 +90,11 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             yaml_data = yaml.load(f, Loader=SafeLoader)
             commands = yaml_data['commands'] or []
             files = yaml_data['files'] or []
-            service_lines_number = yaml_data['services']['number'] or 0
-            service_choice = yaml_data['services']['choice'] or 'all'
-            service_names = yaml_data['services']['names']
+            service_lines_number = yaml_data['journald_logs']['number'] or 0
+            service_names = yaml_data['journald_logs']['names']
 
         with TemporaryDirectory() as tmpdir:
-            collect_data(commands, files, service_choice, service_names, service_lines_number, tmpdir)
+            collect_data(commands, files, service_names, service_lines_number, tmpdir)
 
             with open('/var/lib/wirenboard/short_sn.conf', 'r') as f:
                 additional_part_of_name = f.readline().strip()
@@ -100,7 +102,7 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             additional_part_of_name += '_' + datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
 
             if server:
-                return shutil.make_archive('/var/www/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+                return shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
             else:
                 return shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
     except FileNotFoundError as e:

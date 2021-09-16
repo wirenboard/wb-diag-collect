@@ -36,7 +36,7 @@ def main(argv=sys.argv):
                 if rc != 0:
                     break
         else:
-            collect_data_with_conf(conf_path, args.output_filename[0], False)
+            collect_data_with_conf(conf_path, args.output_filename[0], server=False)
     except FileNotFoundError:
         return 2
     except OSError as e:
