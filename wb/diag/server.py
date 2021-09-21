@@ -3,7 +3,6 @@ import subprocess
 from mqttrpc import MQTTRPCResponseManager, dispatcher
 
 from .collecting import collect_data_with_conf
-import shutil
 
 
 @dispatcher.add_method

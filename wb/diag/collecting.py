@@ -1,4 +1,5 @@
 import datetime
+import os
 import subprocess
 import shutil
 from tempfile import TemporaryDirectory
@@ -44,20 +45,49 @@ def get_filenames_by_regex(regex: str):
         print('No files for regex "{0}"'.format(regex))
 
 
+def create_dirs(dir, files):
+    tmp_dirs = set()
+    for file in files:
+        dirs = file.split(sep='/')[:-1]
+        if len(dirs) > 0 and dirs[0] == '':
+            dirs = dirs[1:]
+        current_dir = dir
+        for d in dirs:
+            current_dir += '/{0}'.format(d)
+            tmp_dirs.add(current_dir)
+            try:
+                os.mkdir(current_dir)
+            except OSError:
+                pass
+    return tmp_dirs
+
+
+def delete_dirs(dirs):
+    for dir in dirs:
+        if dir[:4] == '/tmp':
+            shutil.rmtree(dir, ignore_errors=True)
+
+
 def collect_data(commands, files, service_names, service_lines_number, dir):
     data = {}
     for file in files:
         filenames = get_filenames_by_regex(file) or {}
         for filename in filenames:
             data[filename] = filenames[filename]
+
+    tmp_dirs = create_dirs(dir, data.values())
+
     for filename in data:
-        shutil.copyfile(data[filename], '{0}/{1}'.format(dir, filename))
+        shutil.copyfile(data[filename], '{0}{1}'.format(dir, data[filename]))
 
     for command in commands:
+        tmp_dirs = tmp_dirs.union(create_dirs(dir, [command['filename']]))
         write_output_in_file(command['command'], '{0}/{1}'.format(dir, command['filename']))
 
     if service_lines_number > 0:
         collect_all_services_last_logs(dir, service_names, service_lines_number)
+
+    return tmp_dirs
 
 
 def check_regex_list(service_name, service_names):
@@ -94,7 +124,13 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             service_names = yaml_data['journald_logs']['names']
 
         with TemporaryDirectory() as tmpdir:
-            collect_data(commands, files, service_names, service_lines_number, tmpdir)
+            tmp_dirs = {'service'}
+            try:
+                os.mkdir('{0}/service'.format(tmpdir))
+            except OSError:
+                pass
+
+            tmp_dirs = tmp_dirs.union(collect_data(commands, files, service_names, service_lines_number, tmpdir))
 
             with open('/var/lib/wirenboard/short_sn.conf', 'r') as f:
                 additional_part_of_name = f.readline().strip()
@@ -102,9 +138,12 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             additional_part_of_name += '_' + datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
 
             if server:
-                return shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+                archive_name = shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
             else:
-                return shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+                archive_name = shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+
+            delete_dirs(tmp_dirs)
+            return archive_name
     except FileNotFoundError as e:
         print('File "{0}" not found.'.format(e.filename))
         raise
