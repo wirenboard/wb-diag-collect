@@ -25,9 +25,9 @@ def get_stdout(command: str):
     return p.stdout
 
 
-def get_filenames_by_regex(regex: str):
+def get_filenames_by_wildcard(wildcard: str):
     try:
-        p = subprocess.Popen('find {0} -type f'.format(regex), shell=True, stdout=subprocess.PIPE,
+        p = subprocess.Popen('find {0} -type f'.format(wildcard), shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
         cmd_res = p.stdout.readlines()
         filenames = {}
@@ -37,60 +37,39 @@ def get_filenames_by_regex(regex: str):
 
         for line in cmd_res:
             full_filename = line.decode().strip()
-            filename = full_filename.replace('/', ' ').split()[-1].strip()
+            filename = os.path.basename(full_filename)
             filenames[filename] = full_filename
 
         return filenames
     except FileNotFoundError:
-        print('No files for regex "{0}"'.format(regex))
+        print('No files for wildcard "{0}"'.format(wildcard))
 
 
 def create_dirs(dir, files):
-    tmp_dirs = set()
     for file in files:
-        dirs = file.split(sep='/')[:-1]
-        if len(dirs) > 0 and dirs[0] == '':
-            dirs = dirs[1:]
-        current_dir = dir
-        for d in dirs:
-            current_dir += '/{0}'.format(d)
-            tmp_dirs.add(current_dir)
-            try:
-                os.mkdir(current_dir)
-            except OSError:
-                pass
-    return tmp_dirs
-
-
-def delete_dirs(dirs):
-    for dir in dirs:
-        if dir[:4] == '/tmp':
-            shutil.rmtree(dir, ignore_errors=True)
+        os.makedirs('{0}/{1}'.format(dir, os.path.dirname(file)), exist_ok=True)
 
 
 def collect_data(commands, files, service_names, service_lines_number, dir):
     data = {}
     for file in files:
-        filenames = get_filenames_by_regex(file) or {}
+        filenames = get_filenames_by_wildcard(file) or {}
         for filename in filenames:
             data[filename] = filenames[filename]
 
-    tmp_dirs = create_dirs(dir, data.values())
+    create_dirs(dir, data.values())
 
     for filename in data:
         shutil.copyfile(data[filename], '{0}{1}'.format(dir, data[filename]))
-
     for command in commands:
-        tmp_dirs = tmp_dirs.union(create_dirs(dir, [command['filename']]))
+        create_dirs(dir, [command['filename']])
         write_output_in_file(command['command'], '{0}/{1}'.format(dir, command['filename']))
 
     if service_lines_number > 0:
         collect_all_services_last_logs(dir, service_names, service_lines_number)
 
-    return tmp_dirs
 
-
-def check_regex_list(service_name, service_names):
+def check_wildcard_list(service_name, service_names):
     for serv_name in service_names:
         if fnmatch(service_name, serv_name):
             return True
@@ -104,7 +83,7 @@ def collect_all_services_last_logs(dir, service_names, n=20):
     services = []
     for line in cmd_res:
         service = line.decode().strip().split()[0]
-        if check_regex_list(service, service_names):
+        if check_wildcard_list(service, service_names):
             services.append(service)
 
     commands = []
@@ -124,13 +103,12 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             service_names = yaml_data['journald_logs']['names']
 
         with TemporaryDirectory() as tmpdir:
-            tmp_dirs = {'service'}
             try:
                 os.mkdir('{0}/service'.format(tmpdir))
             except OSError:
                 pass
 
-            tmp_dirs = tmp_dirs.union(collect_data(commands, files, service_names, service_lines_number, tmpdir))
+            collect_data(commands, files, service_names, service_lines_number, tmpdir)
 
             with open('/var/lib/wirenboard/short_sn.conf', 'r') as f:
                 additional_part_of_name = f.readline().strip()
@@ -138,12 +116,9 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             additional_part_of_name += '_' + datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
 
             if server:
-                archive_name = shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+                return shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
             else:
-                archive_name = shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
-
-            delete_dirs(tmp_dirs)
-            return archive_name
+                return shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
     except FileNotFoundError as e:
         print('File "{0}" not found.'.format(e.filename))
         raise

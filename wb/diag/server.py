@@ -11,7 +11,7 @@ def diag():
 
 
 def clear_directory():
-    subprocess.Popen('rm /var/www/diag/*.zip', shell=True)
+    subprocess.run('rm /var/www/diag/*.zip', shell=True)
 
 
 class TMQTTRPCServer(object):
