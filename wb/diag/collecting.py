@@ -68,12 +68,18 @@ def collect_data(commands, files, service_names, service_lines_number, dir):
     if service_lines_number > 0:
         collect_all_services_last_logs(dir, service_names, service_lines_number)
 
+    collect_modbus()
+
 
 def check_wildcard_list(service_name, service_names):
     for serv_name in service_names:
         if fnmatch(service_name, serv_name):
             return True
     return False
+
+
+def collect_modbus():
+    pass
 
 
 def collect_all_services_last_logs(dir, service_names, n=20):
@@ -86,11 +92,9 @@ def collect_all_services_last_logs(dir, service_names, n=20):
         if check_wildcard_list(service, service_names):
             services.append(service)
 
-    commands = []
     for serv in services:
-        commands.append('journalctl -u {0} --no-pager -n {1}'.format(serv, n))
-
-    write_output_in_file(commands, '{0}/services_log'.format(dir))
+        write_output_in_file('journalctl -u {0} --no-pager -n {1}'.format(serv, n),
+                             '{0}/service/{1}'.format(dir, serv))
 
 
 def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_output', server=True):
@@ -105,6 +109,7 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
         with TemporaryDirectory() as tmpdir:
             try:
                 os.mkdir('{0}/service'.format(tmpdir))
+                os.mkdir('{0}/modbus'.format(tmpdir))
             except OSError:
                 pass
 
