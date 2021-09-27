@@ -10,6 +10,11 @@ def diag():
     return collect_data_with_conf()
 
 
+@dispatcher.add_method
+def status():
+    return "1"
+
+
 def clear_directory():
     subprocess.run('rm /var/www/diag/*.zip', shell=True)
 
@@ -33,6 +38,6 @@ class TMQTTRPCServer(object):
 
     def setup(self):
         for service, method in dispatcher.keys():
-            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), "1", retain=True)
+            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method))
 
             self.client.subscribe("/rpc/v1/%s/%s/%s/+" % (self.driver_id, service, method))
