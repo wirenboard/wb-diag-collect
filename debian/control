@@ -10,7 +10,7 @@ X-Python3-Version: >= 3.2
 Package: python3-wb-diag-collect
 Section: python
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3-yaml, python3-mqttrpc, python3-wb-mcu-fw-updater
+Depends: ${python3:Depends}, ${misc:Depends}, python3-yaml, python3-mqttrpc, python3-paho-mqtt, python3-wb-mcu-fw-updater
 Description: python3 library for one-click diagnostic data
  collector for Wiren Board
 
