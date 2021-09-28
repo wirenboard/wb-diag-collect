@@ -1,0 +1,22 @@
+Source: wb-diag-collect
+Section: local
+Priority: optional
+Maintainer: Semen Sokolov <s.sokolov@wirenboard.ru>
+Build-Depends: debhelper (>= 10), dh-python, python3-all, python3-setuptools, pkg-config
+Standards-Version: 4.5.0
+Homepage: https://github.com/wirenboard/wb-diag-collect
+X-Python3-Version: >= 3.2
+
+Package: python3-wb-diag-collect
+Section: python
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, python3-yaml, python3-mqttrpc, python3-paho-mqtt, python3-wb-mcu-fw-updater
+Description: python3 library for one-click diagnostic data
+ collector for Wiren Board
+
+Package: wb-diag-collect
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${python3:Depends}, python3-wb-diag-collect (= ${binary:Version})
+Description: one-click diagnostic data collector for Wiren Board,
+ generating archive with data
