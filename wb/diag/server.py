@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 from mqttrpc import MQTTRPCResponseManager, dispatcher
@@ -7,7 +8,8 @@ from .collecting import collect_data_with_conf
 
 @dispatcher.add_method
 def diag():
-    return collect_data_with_conf()
+    fullname = collect_data_with_conf()
+    return {'basename': os.path.basename(fullname), 'fullname': fullname}
 
 
 @dispatcher.add_method
