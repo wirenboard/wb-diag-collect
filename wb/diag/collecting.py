@@ -4,6 +4,7 @@ import subprocess
 import shutil
 from tempfile import TemporaryDirectory
 from fnmatch import fnmatch
+from wb_modbus.bindings import WBModbusDeviceBase
 
 import yaml
 from yaml.loader import SafeLoader
@@ -50,7 +51,15 @@ def create_dirs(dir, files):
         os.makedirs('{0}/{1}'.format(dir, os.path.dirname(file)), exist_ok=True)
 
 
-def collect_data(commands, files, service_names, service_lines_number, dir):
+def collect_data(commands, files, service_names, service_lines_number, modbus, dir):
+    try:
+        subprocess.run('service wb-mqtt-serial stop', shell=True)
+
+        for device in modbus:
+            collect_modbus(device['slave_id'], device['port'], dir)
+    finally:
+        subprocess.run('service wb-mqtt-serial start', shell=True)
+
     data = {}
     for file in files:
         filenames = get_filenames_by_wildcard(file) or {}
@@ -68,8 +77,6 @@ def collect_data(commands, files, service_names, service_lines_number, dir):
     if service_lines_number > 0:
         collect_all_services_last_logs(dir, service_names, service_lines_number)
 
-    collect_modbus()
-
 
 def check_wildcard_list(service_name, service_names):
     for serv_name in service_names:
@@ -78,8 +85,22 @@ def check_wildcard_list(service_name, service_names):
     return False
 
 
-def collect_modbus():
-    pass
+def collect_modbus(slave_id, port, dir):
+    try:
+        device = WBModbusDeviceBase(slave_id,      port)
+    except OSError:
+        print('Can\'t reach device with slave_id {0} on port {1}'.format(slave_id, port))
+    port = port.replace('/', '_')
+    with open('{0}/modbus/{1}_{2}.log'.format(dir, port, slave_id), 'w') as file:
+        print("Device model:      ", device.get_device_signature(), file=file)
+        print("Firmware version:  ", device.get_fw_version(), file=file)
+        print("Firmware buil time:", device.read_string(220, 22), file=file)
+        print("Device S/N:        ", device.get_serial_number(), file=file)
+        print("Device S/N decimal:", device._get_serial_number_map(), file=file)
+        print("Device uptime (s): ", device.get_uptime(), file=file)
+        print("Boot signature:    ", device.read_string(290, 12), file=file)
+        print("Boot version:      ", device.get_bootloader_version(), file=file)
+        # print("GIT info:        ", device.read_string(220, 28), file=file)  # не работает по не известной причине
 
 
 def collect_all_services_last_logs(dir, service_names, n=20):
@@ -105,6 +126,7 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             files = yaml_data['files'] or []
             service_lines_number = yaml_data['journald_logs']['lines_number'] or 0
             service_names = yaml_data['journald_logs']['names']
+            modbus = yaml_data['modbus']
 
         with TemporaryDirectory() as tmpdir:
             try:
@@ -113,7 +135,7 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             except OSError:
                 pass
 
-            collect_data(commands, files, service_names, service_lines_number, tmpdir)
+            collect_data(commands, files, service_names, service_lines_number, modbus, tmpdir)
 
             with open('/var/lib/wirenboard/short_sn.conf', 'r') as f:
                 additional_part_of_name = f.readline().strip()
@@ -121,7 +143,8 @@ def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename='diag_ou
             additional_part_of_name += '_' + datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
 
             if server:
-                return shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
+                return shutil.make_archive('/var/www/diag/{0}_{1}'.format(output_filename, additional_part_of_name),
+                                           'zip', tmpdir)
             else:
                 return shutil.make_archive('{0}_{1}'.format(output_filename, additional_part_of_name), 'zip', tmpdir)
     except FileNotFoundError as e:
