@@ -1,3 +1,9 @@
+wb-diag-collect (0.2) UNRELEASED; urgency=low
+
+  * Modbus info added.
+
+ -- Semen Sokolov <s.sokolov@wirenboard.ru>  Fri, 30 Sen 2021 03:25:44 +0300
+
 wb-diag-collect (0.1) UNRELEASED; urgency=low
 
   * Initial release. Ticket #38500
