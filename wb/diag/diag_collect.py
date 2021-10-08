@@ -25,7 +25,6 @@ def main(argv=sys.argv):
                                                  "generating archive with data")
     parser.add_argument('-c', '--config', action='store', help='get data from config')
     parser.add_argument('-s', '--server', action='store_true', help='run server')
-    parser.add_argument('-f', '--clean', action='store_true', help='clean topics')
     parser.add_argument('output_filename', metavar='output_filename', type=str, nargs=1, help='output filename')
 
     args = parser.parse_args(argv[1:])
