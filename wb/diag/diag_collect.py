@@ -42,7 +42,7 @@ def main(argv=sys.argv):
                 broker = yaml_data['mqtt']['broker']
                 port = yaml_data['mqtt']['port']
 
-            client = mqtt_client.Client('wb-diag-collect')
+            client = mqtt_client.Client('wb-diag-collect-cleaner')
             rpc_server = TMQTTRPCServer(client, 'diag')
             client.connect(broker, port)
             rpc_server.clean()
