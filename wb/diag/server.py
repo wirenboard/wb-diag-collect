@@ -40,6 +40,11 @@ class TMQTTRPCServer(object):
 
     def setup(self):
         for service, method in dispatcher.keys():
-            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method))
+            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), "1", retain=True)
 
             self.client.subscribe("/rpc/v1/%s/%s/%s/+" % (self.driver_id, service, method))
+
+    def clean(self):
+        for service, method in dispatcher.keys():
+            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), retain=True)
+

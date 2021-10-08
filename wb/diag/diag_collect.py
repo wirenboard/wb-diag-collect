@@ -13,6 +13,7 @@ def main(argv=sys.argv):
                                                  "generating archive with data")
     parser.add_argument('-c', '--config', action='store', help='get data from config')
     parser.add_argument('-s', '--server', action='store_true', help='run server')
+    parser.add_argument('-f', '--clean', action='store_true', help='clean topics')
     parser.add_argument('output_filename', metavar='output_filename', type=str, nargs=1, help='output filename')
 
     args = parser.parse_args(argv[1:])
@@ -35,6 +36,16 @@ def main(argv=sys.argv):
                 rc = client.loop()
                 if rc != 0:
                     break
+        elif args.clean:
+            with open(conf_path or DEFAULT_CONF_PATH) as f:
+                yaml_data = yaml.load(f, Loader=SafeLoader)
+                broker = yaml_data['mqtt']['broker']
+                port = yaml_data['mqtt']['port']
+
+            client = mqtt_client.Client('wb-diag-collect')
+            rpc_server = TMQTTRPCServer(client, 'diag')
+            client.connect(broker, port)
+            rpc_server.clean()
         else:
             collect_data_with_conf(conf_path, args.output_filename[0], server=False)
     except FileNotFoundError:
