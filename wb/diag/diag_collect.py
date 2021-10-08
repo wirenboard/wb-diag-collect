@@ -1,11 +1,23 @@
 import argparse
 import sys
+import signal
 from .server import *
 from .collecting import DEFAULT_CONF_PATH, collect_data_with_conf
 from paho.mqtt import client as mqtt_client
 
 import yaml
 from yaml.loader import SafeLoader
+
+
+class GracefulKiller:
+
+    def __init__(self):
+        self.kill_now = False
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
 
 
 def main(argv=sys.argv):
@@ -24,28 +36,18 @@ def main(argv=sys.argv):
                 yaml_data = yaml.load(f, Loader=SafeLoader)
                 broker = yaml_data['mqtt']['broker']
                 port = yaml_data['mqtt']['port']
-
             client = mqtt_client.Client('wb-diag-collect')
-            rpc_server = TMQTTRPCServer(client, 'diag')
 
-            client.connect(broker, port)
-            client.on_message = rpc_server.on_mqtt_message
-            rpc_server.setup()
+            with TMQTTRPCServerContextManager(client, 'diag') as rpc_server:
+                client.connect(broker, port)
+                client.on_message = rpc_server.on_mqtt_message
+                rpc_server.setup()
 
-            while 1:
-                rc = client.loop()
-                if rc != 0:
-                    break
-        elif args.clean:
-            with open(conf_path or DEFAULT_CONF_PATH) as f:
-                yaml_data = yaml.load(f, Loader=SafeLoader)
-                broker = yaml_data['mqtt']['broker']
-                port = yaml_data['mqtt']['port']
-
-            client = mqtt_client.Client('wb-diag-collect-cleaner')
-            rpc_server = TMQTTRPCServer(client, 'diag')
-            client.connect(broker, port)
-            rpc_server.clean()
+                killer = GracefulKiller()
+                while not killer.kill_now:
+                    rc = client.loop()
+                    if rc != 0:
+                        break
         else:
             collect_data_with_conf(conf_path, args.output_filename[0], server=False)
     except FileNotFoundError:
