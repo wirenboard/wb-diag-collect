@@ -52,13 +52,17 @@ def create_dirs(dir, files):
 
 
 def collect_data(commands, files, service_names, service_lines_number, modbus, dir):
+    p = get_stdout('systemctl is-active wb-mqtt-serial')
+    service_status = p.readline().decode().strip()
     try:
-        subprocess.run('service wb-mqtt-serial stop', shell=True)
+        if service_status == "active":
+            subprocess.run('service wb-mqtt-serial stop', shell=True)
 
         for device in modbus:
             collect_modbus(device['slave_id'], device['port'], dir)
     finally:
-        subprocess.run('service wb-mqtt-serial start', shell=True)
+        if service_status == "active":
+            subprocess.run('service wb-mqtt-serial start', shell=True)
 
     data = {}
     for file in files:
@@ -100,7 +104,7 @@ def collect_modbus(slave_id, port, dir):
         print("Device uptime (s): ", device.get_uptime(), file=file)
         print("Boot signature:    ", device.read_string(290, 12), file=file)
         print("Boot version:      ", device.get_bootloader_version(), file=file)
-        # print("GIT info:        ", device.read_string(220, 28), file=file)  # не работает по не известной причине
+        # print("GIT info:          ", device.read_string(220, 29), file=file)  # не работает по не известной причине
 
 
 def collect_all_services_last_logs(dir, service_names, n=20):
