@@ -40,6 +40,24 @@ class TMQTTRPCServer(object):
 
     def setup(self):
         for service, method in dispatcher.keys():
-            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method))
+            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), "1", retain=True)
 
             self.client.subscribe("/rpc/v1/%s/%s/%s/+" % (self.driver_id, service, method))
+
+    def clean(self):
+        for service, method in dispatcher.keys():
+            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), retain=True)
+
+
+class TMQTTRPCServerContextManager:
+    def __init__(self, client, driver_id):
+        self.client = client
+        self.driver_id = driver_id
+        self.rpc_server = None
+
+    def __enter__(self):
+        self.rpc_server = TMQTTRPCServer(self.client, self.driver_id)
+        return self.rpc_server
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.rpc_server.clean()
