@@ -1,3 +1,10 @@
+wb-diag-collect (1.0.0) stable; urgency=low
+
+  * Proper version number
+  * capture 1000 lines of service logs instead of just 20
+
+ -- Evgeny Boger <boger@wirenboard.com>  Sun, 21 Nov 2021 22:56:15 +0300
+
 wb-diag-collect (0.2) UNRELEASED; urgency=low
 
   * Cleaning topics on service stop.
