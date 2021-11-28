@@ -11,13 +11,19 @@ from yaml.loader import SafeLoader
 DEFAULT_CONF_PATH = '/usr/share/wb-diag-collect/wb-diag-collect.conf'
 
 
-def write_output_in_file(command, filename):
+def write_output_in_file(command, filename, timeout_s = 5.0):
     with open('{0}.log'.format(filename), 'w') as file:
         if type(command) is str:
-            subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT)
+            commands = [command, ]
         else:
-            for comm in command:
-                subprocess.Popen(comm, shell=True, stdout=file, stderr=subprocess.STDOUT)
+            commands = command
+
+        for comm in commands:
+            proc = subprocess.Popen(comm, shell=True, stdout=file, stderr=subprocess.STDOUT)
+            try:
+                proc.wait(timeout_s)
+            except subprocess.TimeoutExpired:
+                print("Command '{0}' didn't finished in {1}s".format(comm, timeout_s))
 
 
 def get_stdout(command: str):
