@@ -33,7 +33,7 @@ def get_stdout(command: str):
 
 def get_filenames_by_wildcard(wildcard: str):
     try:
-        p = subprocess.Popen('find {0} -type f'.format(wildcard), shell=True, stdout=subprocess.PIPE,
+        p = subprocess.Popen('find {0} -type "f,l"'.format(wildcard), shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
         cmd_res = p.stdout.readlines()
         filenames = {}
