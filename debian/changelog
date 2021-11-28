@@ -1,3 +1,13 @@
+wb-diag-collect (1.1.0) stable; urgency=medium
+
+  * store u-boot version from DT
+  * also store free, lsusb, fuse output
+  * store emmc details, includint mmc-utils and emmcparm output
+  * save non-sensitive wb configs. For the momemnt, only hardware, adc and gpio configs are stored.
+  * fix for incomplete command output
+
+ -- Evgeny Boger <boger@contactless.ru>  Sun, 28 Nov 2021 01:30:33 +0300
+
 wb-diag-collect (1.0.0) stable; urgency=low
 
   * Proper version number
