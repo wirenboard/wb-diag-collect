@@ -2,6 +2,7 @@ import datetime
 import os
 import subprocess
 import shutil
+from contextlib import redirect_stdout
 from tempfile import TemporaryDirectory
 from fnmatch import fnmatch
 
@@ -11,13 +12,23 @@ from yaml.loader import SafeLoader
 DEFAULT_CONF_PATH = '/usr/share/wb-diag-collect/wb-diag-collect.conf'
 
 
-def write_output_in_file(command, filename):
+def write_output_in_file(command, filename, timeout_s = 5.0):
     with open('{0}.log'.format(filename), 'w') as file:
         if type(command) is str:
-            subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT)
+            commands = [command, ]
         else:
-            for comm in command:
-                subprocess.Popen(comm, shell=True, stdout=file, stderr=subprocess.STDOUT)
+            commands = command
+
+        for comm in commands:
+            proc = subprocess.Popen(comm, shell=True, stdout=file, stderr=subprocess.STDOUT)
+            try:
+                proc.wait(timeout_s)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                errorMessage = "Command '{0}' didn't finished in {1}s".format(comm, timeout_s)
+                print(errorMessage)
+                with redirect_stdout(file):
+                    print(errorMessage)
 
 
 def get_stdout(command: str):
@@ -27,12 +38,12 @@ def get_stdout(command: str):
 
 def get_filenames_by_wildcard(wildcard: str):
     try:
-        p = subprocess.Popen('find {0} -type f'.format(wildcard), shell=True, stdout=subprocess.PIPE,
+        p = subprocess.Popen('find {0} -type f,l'.format(wildcard), shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
         cmd_res = p.stdout.readlines()
         filenames = {}
 
-        if p.poll() == 1:
+        if p.poll() != 0:
             raise FileNotFoundError()
 
         for line in cmd_res:
