@@ -17,6 +17,6 @@ Description: python3 library for one-click diagnostic data
 Package: wb-diag-collect
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${python3:Depends}, python3-wb-diag-collect (= ${binary:Version}), emmcparm (>= 5.0.0)
+Depends: ${misc:Depends}, ${python3:Depends}, python3-wb-diag-collect (= ${binary:Version})
 Description: one-click diagnostic data collector for Wiren Board,
  generating archive with data
