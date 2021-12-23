@@ -2,6 +2,7 @@ import datetime
 import os
 import subprocess
 import shutil
+from contextlib import redirect_stdout
 from tempfile import TemporaryDirectory
 from fnmatch import fnmatch
 
@@ -23,23 +24,28 @@ def write_output_in_file(command, filename, timeout_s = 5.0):
             try:
                 proc.wait(timeout_s)
             except subprocess.TimeoutExpired:
-                print("Command '{0}' didn't finished in {1}s".format(comm, timeout_s))
+                proc.kill()
+                errorMessage = "Command '{0}' didn't finished in {1}s".format(comm, timeout_s)
+                print(errorMessage)
+                with redirect_stdout(file):
+                    print(errorMessage)
 
 
 def get_stdout(command: str):
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return p.stdout
 
 
 def get_filenames_by_wildcard(wildcard: str):
     try:
-        p = subprocess.Popen('find {0} -type "f,l"'.format(wildcard), shell=True, stdout=subprocess.PIPE,
+        p = subprocess.run('find {0} -type "f,l"'.format(wildcard), shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
+
+        if p.returncode() != 0:
+            raise FileNotFoundError()
+
         cmd_res = p.stdout.readlines()
         filenames = {}
-
-        if p.poll() == 1:
-            raise FileNotFoundError()
 
         for line in cmd_res:
             full_filename = line.decode().strip()
