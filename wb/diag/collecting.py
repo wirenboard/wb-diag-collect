@@ -32,20 +32,19 @@ def write_output_in_file(command, filename, timeout_s = 5.0):
 
 
 def get_stdout(command: str):
-    p = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return p.stdout
 
 
 def get_filenames_by_wildcard(wildcard: str):
     try:
-        p = subprocess.run('find {0} -type "f,l"'.format(wildcard), shell=True, stdout=subprocess.PIPE,
+        p = subprocess.Popen('find {0} -type f,l'.format(wildcard), shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
-
-        if p.returncode() != 0:
-            raise FileNotFoundError()
-
         cmd_res = p.stdout.readlines()
         filenames = {}
+
+        if p.poll() != 0:
+            raise FileNotFoundError()
 
         for line in cmd_res:
             full_filename = line.decode().strip()
