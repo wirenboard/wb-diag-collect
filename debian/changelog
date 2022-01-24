@@ -1,3 +1,9 @@
+wb-diag-collect (1.2.0) stable; urgency=medium
+
+  * add journald wb-release logs
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Mon, 24 Jan 2022 14:07:23 +0300
+
 wb-diag-collect (1.1.0) stable; urgency=medium
 
   * store u-boot version from DT
