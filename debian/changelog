@@ -1,3 +1,9 @@
+wb-diag-collect (1.2.1) stable; urgency=medium
+
+  * add z-way-server.log to files
+
+ -- wb <wb@wb-Latitude-3400>  Thu, 16 Jun 2022 14:06:27 +0300
+
 wb-diag-collect (1.2.0) stable; urgency=medium
 
   * add journald wb-release logs
