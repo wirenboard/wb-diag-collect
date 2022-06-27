@@ -1,15 +1,14 @@
 import argparse
 import logging
-import signal
 import sys
 from enum import IntEnum
 
 import yaml
-from paho.mqtt import client as mqtt_client
 from yaml.loader import SafeLoader
 
-from .collecting import DEFAULT_CONF_PATH, collect_data_with_conf
-from .server import *
+from wb.diag import collector, rpc_server
+
+DEFAULT_CONF_PATH = "/usr/share/wb-diag-collect/wb-diag-collect.conf"
 
 
 class ResultCode(IntEnum):
@@ -18,19 +17,18 @@ class ResultCode(IntEnum):
     USER_INPUT_ERROR = 2
 
 
-class GracefulKiller:
-    def __init__(self):
-        self.kill_now = False
-        signal.signal(signal.SIGINT, self.exit_gracefully)
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
+logger = logging.getLogger(__name__)
 
-    def exit_gracefully(self, *args):
-        self.kill_now = True
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+logger.addHandler(console_handler)
+
+logger.setLevel(logging.INFO)
 
 
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(
-        description="one-click diagnostic data collector for Wiren Board, " "generating archive with data"
+        description="one-click diagnostic data collector for Wiren Board, generating archive with data"
     )
     parser.add_argument("-c", "--config", action="store", help="get data from config")
     parser.add_argument("-s", "--server", action="store_true", help="run server")
@@ -41,28 +39,32 @@ def main(argv=sys.argv):
     args = parser.parse_args(argv[1:])
     conf_path = args.config
     try:
+        with open(conf_path or DEFAULT_CONF_PATH) as f:
+            yaml_data = yaml.load(f, Loader=SafeLoader)
+
+            options = {}
+            options["commands"] = yaml_data["commands"] or []
+            options["files"] = yaml_data["files"] or []
+            options["service_lines_number"] = yaml_data["journald_logs"]["lines_number"] or 0
+            options["service_names"] = yaml_data["journald_logs"]["names"]
+
+            if args.server:
+                options["broker"] = yaml_data["mqtt"]["broker"]
+                options["port"] = yaml_data["mqtt"]["port"]
+
         if args.server:
-            with open(conf_path or DEFAULT_CONF_PATH) as f:
-                yaml_data = yaml.load(f, Loader=SafeLoader)
-                broker = yaml_data["mqtt"]["broker"]
-                port = yaml_data["mqtt"]["port"]
-            client = mqtt_client.Client("wb-diag-collect")
-
-            with TMQTTRPCServerContextManager(client, "diag") as rpc_server:
-                client.connect(broker, port)
-                client.on_message = rpc_server.on_mqtt_message
-                rpc_server.setup()
-
-                killer = GracefulKiller()
-                while not killer.kill_now:
-                    rc = client.loop()
-                    if rc != 0:
-                        break
+            rpc_server.serve(options, logger)
         else:
-            collect_data_with_conf(conf_path, args.output_filename[0], server=False)
+            print("Start data collecting")
+
+            wb_archive_collector = collector.Collector(logger)
+            wb_archive_collector.collect(options, "", args.output_filename[0])
+
+            print("Data was collected successfully")
 
         return ResultCode.OK
     except OSError as e:
+        print("OSError: with file %s, errno %d", e.filename, e.errno)
         return ResultCode.OPERATION_ERROR
 
 

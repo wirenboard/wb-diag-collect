@@ -3,177 +3,141 @@ import logging
 import os
 import shutil
 import subprocess
-from contextlib import redirect_stdout
 from fnmatch import fnmatch
+from io import StringIO
 from tempfile import TemporaryDirectory
 
-import yaml
-from yaml.loader import SafeLoader
 
-from wb import diag
+class Collector:
+    def __init__(self, logger):
+        self.logger = logger
 
-from . import diag_logging, logger
-
-DEFAULT_CONF_PATH = "/usr/share/wb-diag-collect/wb-diag-collect.conf"
-
-
-def write_output_in_file(command, filename, timeout_s=5.0):
-    with open("{0}.log".format(filename), "w") as file:
-        if type(command) is str:
-            commands = [
-                command,
-            ]
-        else:
-            commands = command
-
-        for comm in commands:
-            proc = subprocess.Popen(comm, shell=True, stdout=file, stderr=subprocess.STDOUT)
+    def collect(self, options, output_directory, output_filename):
+        with TemporaryDirectory() as tmpdir:
             try:
-                proc.wait(timeout_s)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                logger.warning(
-                    "Command %s didn't finished in %ds",
-                    comm,
-                    timeout_s,
-                    exc_info=(logger.level <= logging.DEBUG),
+
+                self.log_stream = StringIO()
+                self.log_stream_handler = logging.StreamHandler(self.log_stream)
+                self.logger.setLevel(self.logger.getEffectiveLevel())
+                self.logger.addHandler(self.log_stream_handler)
+
+                self.copy_files(tmpdir, options["files"])
+                self.execute_commands(tmpdir, options["commands"], 5.0)
+                self.copy_journalctl(tmpdir, options["service_names"], options["service_lines_number"], 5.0)
+
+            except FileNotFoundError as e:
+                self.logger.error(
+                    "File %s not found.", e.filename, exc_info=(self.logger.level <= logging.DEBUG)
                 )
 
+            except OSError as e:
+                self.logger.error("OSError: with file %s, errno %d", e.filename, e.errno)
+                self.logger.error(e.strerror, exc_info=(self.logger.level <= logging.DEBUG))
 
-def get_stdout(command: str):
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    return p.stdout
+            finally:
 
+                with open("{0}/{1}".format(tmpdir, "wb-diag-collect"), "w") as logfile:
+                    self.log_stream.seek(0)
+                    shutil.copyfileobj(self.log_stream, logfile)
 
-def get_filenames_by_wildcard(wildcard: str):
-    try:
-        p = subprocess.Popen(
+                self.logger.removeHandler(self.log_stream_handler)
+
+                with open("/var/lib/wirenboard/short_sn.conf", "r") as f:
+                    serial_number = f.readline().strip()
+
+                date_time_now = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
+
+                return shutil.make_archive(
+                    base_name=output_directory
+                    + "{0}_{1}_{2}".format(output_filename, serial_number, date_time_now),
+                    format="zip",
+                    root_dir=tmpdir,
+                )
+
+    def apply_file_wildcard(self, wildcard: str):
+        proc = subprocess.Popen(
             "find {0} -type f,l".format(wildcard),
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        cmd_res = p.stdout.readlines()
-        filenames = {}
 
-        if p.poll() != 0:
-            raise FileNotFoundError()
+        cmd_res = proc.stdout.readlines()
+        file_paths = []
+
+        if proc.poll() != 0:
+            self.logger.warning("No files for wildcard %s", wildcard)
+            return file_paths
 
         for line in cmd_res:
-            full_filename = line.decode().strip()
-            filename = os.path.basename(full_filename)
-            filenames[filename] = full_filename
+            path = line.decode().strip()
+            file_paths.append(path)
 
-        return filenames
-    except FileNotFoundError:
-        logger.warning("No files for wildcard %s", wildcard, exc_info=(logger.level <= logging.DEBUG))
+        return file_paths
 
+    def copy_files(self, directory, wildcards):
+        for wildcard in wildcards:
+            file_paths = self.apply_file_wildcard(wildcard) or []
+            for path in file_paths:
+                os.makedirs("{0}/{1}".format(directory, os.path.dirname(path)), exist_ok=True)
+                shutil.copyfile(path, "{0}/{1}".format(directory, path))
 
-def create_dirs(dir, files):
-    for file in files:
-        os.makedirs("{0}/{1}".format(dir, os.path.dirname(file)), exist_ok=True)
+    def execute_commands(self, directory, commands, timeout):
+        for command_data in commands:
+            command = command_data["command"]
+            file_name = command_data["filename"]
 
+            os.makedirs("{0}/{1}".format(directory, os.path.dirname(file_name)), exist_ok=True)
 
-def collect_data(commands, files, service_names, service_lines_number, dir):
-    data = {}
-    for file in files:
-        filenames = get_filenames_by_wildcard(file) or {}
-        for filename in filenames:
-            data[filename] = filenames[filename]
+            with open("{0}/{1}.log".format(directory, file_name), "w") as file:
 
-    create_dirs(dir, data.values())
+                proc = subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT)
+                try:
+                    proc.wait(timeout)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    self.logger.warning(
+                        "Command %s didn't finish in %ds",
+                        command,
+                        timeout,
+                        exc_info=(self.logger.level <= logging.DEBUG),
+                    )
 
-    for filename in data:
-        shutil.copyfile(data[filename], "{0}{1}".format(dir, data[filename]))
-    for command in commands:
-        create_dirs(dir, [command["filename"]])
-        write_output_in_file(command["command"], "{0}/{1}".format(dir, command["filename"]))
+    def copy_journalctl(self, directory, service_wildcards, lines_count, timeout):
 
-    if service_lines_number > 0:
-        collect_all_services_last_logs(dir, service_names, service_lines_number)
-
-    collect_modbus()
-
-
-def check_wildcard_list(service_name, service_names):
-    for serv_name in service_names:
-        if fnmatch(service_name, serv_name):
-            return True
-    return False
-
-
-def collect_modbus():
-    pass
-
-
-def collect_all_services_last_logs(dir, service_names, n=20):
-    p = get_stdout("systemctl list-unit-files --no-pager | grep .service")
-
-    cmd_res = p.readlines()
-    services = []
-    for line in cmd_res:
-        service = line.decode().strip().split()[0]
-        if check_wildcard_list(service, service_names):
-            services.append(service)
-
-    for serv in services:
-        write_output_in_file(
-            "journalctl -u {0} --no-pager -n {1}".format(serv, n), "{0}/service/{1}".format(dir, serv)
+        proc = subprocess.Popen(
+            "systemctl list-unit-files --no-pager | grep .service",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
 
+        cmd_res = proc.stdout.readlines()
 
-def collect_data_with_conf(conf_path=DEFAULT_CONF_PATH, output_filename="diag_output", server=True):
+        services = []
+        for line in cmd_res:
+            systemctl_service = line.decode().strip().split()[0]
 
-    try:
+            for wildcard in service_wildcards:
+                if fnmatch(systemctl_service, wildcard):
+                    services.append(systemctl_service)
+                    break
 
-        with open(conf_path or DEFAULT_CONF_PATH) as f:
-            yaml_data = yaml.load(f, Loader=SafeLoader)
-            commands = yaml_data["commands"] or []
-            files = yaml_data["files"] or []
-            service_lines_number = yaml_data["journald_logs"]["lines_number"] or 0
-            service_names = yaml_data["journald_logs"]["names"]
+        os.mkdir("{0}/service".format(directory))
 
-        with TemporaryDirectory() as tmpdir:
-            try:
+        for service in services:
 
-                os.mkdir("{0}/service".format(tmpdir))
-                os.mkdir("{0}/modbus".format(tmpdir))
+            with open("{0}/service/{1}.log".format(directory, service), "w") as file:
+                command = "journalctl -u {0} --no-pager -n {1}".format(service, lines_count)
+                proc = subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT)
 
-                log_file_path = "/var/www/diag/" if server else ""
-                logger_handler = diag_logging.add_file_handler(logger, logging.INFO, log_file_path)
-
-                collect_data(commands, files, service_names, service_lines_number, tmpdir)
-
-            except FileNotFoundError as e:
-                logger.error("File %s not found.", e.filename, exc_info=(logger.level <= logging.DEBUG))
-
-            except OSError as e:
-                logger.error("OSError: with file %s, errno %d", e.filename, e.errno)
-                logger.error(e.strerror, exc_info=(logger.level <= logging.DEBUG))
-
-            finally:
-
-                diag_logging.move_log_to_directory(logger_handler, tmpdir)
-                diag_logging.remove_file_handler(logger, logger_handler)
-
-                with open("/var/lib/wirenboard/short_sn.conf", "r") as f:
-                    additional_part_of_name = f.readline().strip()
-
-                additional_part_of_name += "_" + datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")
-
-                if server:
-                    return shutil.make_archive(
-                        base_name="/var/www/diag/{0}_{1}".format(output_filename, additional_part_of_name),
-                        format="zip",
-                        root_dir=tmpdir,
+                try:
+                    proc.wait(timeout)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    self.logger.warning(
+                        "Journalctl reading %s didn't finish in %ds",
+                        command,
+                        timeout,
+                        exc_info=(self.logger.level <= logging.DEBUG),
                     )
-                else:
-                    return shutil.make_archive(
-                        "{0}_{1}".format(output_filename, additional_part_of_name),
-                        format="zip",
-                        root_dir=tmpdir,
-                    )
-
-    except OSError as e:
-        print("OSError: with file {0}, errno {1}".format(e.filename, e.errno))
-        raise OSError from e
