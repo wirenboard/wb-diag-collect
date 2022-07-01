@@ -20,7 +20,7 @@ class ResultCode(IntEnum):
 logger = logging.getLogger(__name__)
 
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+console_handler.setLevel(logging.DEBUG)
 logger.addHandler(console_handler)
 
 logger.setLevel(logging.INFO)
@@ -32,12 +32,17 @@ def main(argv=sys.argv):
     )
     parser.add_argument("-c", "--config", action="store", help="get data from config")
     parser.add_argument("-s", "--server", action="store_true", help="run server")
+    parser.add_argument("-d", "--debug", action="store_true", help="set debug logging level")
     parser.add_argument(
         "output_filename", metavar="output_filename", type=str, nargs=1, help="output filename"
     )
 
     args = parser.parse_args(argv[1:])
     conf_path = args.config
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
     try:
         with open(conf_path or DEFAULT_CONF_PATH) as f:
             yaml_data = yaml.load(f, Loader=SafeLoader)
