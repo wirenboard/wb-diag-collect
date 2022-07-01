@@ -74,7 +74,6 @@ class MQTTRPCServer:
             self.client.subscribe("/rpc/v1/%s/%s/%s/+" % (self.driver_id, service, method))
 
     def on_message(self, mosq, obj, msg):
-
         parts = msg.topic.split("/")
         service_id = parts[4]
         method_id = parts[5]
@@ -115,7 +114,6 @@ def rpc_server_context(name, options, logger):
 
 
 def serve(options, logger):
-
     with rpc_server_context("wb-diag-collect", options, logger) as server:
         while server.run:
             pass

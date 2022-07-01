@@ -15,7 +15,6 @@ class Collector:
     def collect(self, options, output_directory, output_filename):
         with TemporaryDirectory() as tmpdir:
             try:
-
                 self.log_stream = StringIO()
                 self.log_stream_handler = logging.StreamHandler(self.log_stream)
                 self.logger.setLevel(self.logger.getEffectiveLevel())
@@ -35,7 +34,6 @@ class Collector:
                 self.logger.error(e.strerror, exc_info=(self.logger.level <= logging.DEBUG))
 
             finally:
-
                 with open("{0}/{1}".format(tmpdir, "wb-diag-collect"), "w") as logfile:
                     self.log_stream.seek(0)
                     shutil.copyfileobj(self.log_stream, logfile)
@@ -104,7 +102,6 @@ class Collector:
                     )
 
     def copy_journalctl(self, directory, service_wildcards, lines_count, timeout):
-
         proc = subprocess.Popen(
             "systemctl list-unit-files --no-pager | grep .service",
             shell=True,
@@ -126,7 +123,6 @@ class Collector:
         os.mkdir("{0}/service".format(directory))
 
         for service in services:
-
             with open("{0}/service/{1}.log".format(directory, service), "w") as file:
                 command = "journalctl -u {0} --no-pager -n {1}".format(service, lines_count)
                 proc = subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT)
