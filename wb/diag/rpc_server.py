@@ -25,7 +25,6 @@ class MQTTRPCServer:
 
         logger.debug("Connecting to broker %s:%s", options["broker"], options["port"])
         self.client.connect(options["broker"], options["port"])
-        self.client.loop_start()
 
         self.run = True
 
@@ -85,6 +84,8 @@ class MQTTRPCServer:
         for service, method in self.dispatcher.keys():
             self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), retain=True)
 
+        self.client.loop()
+
         self.run = False
         self.logger.debug("Disconnecting with broker")
         self.client.disconnect()
@@ -98,7 +99,6 @@ def rpc_server_context(name, options, dispatcher, logger):
         yield rpc_server
     except (TimeoutError, ConnectionRefusedError) as error:
         logger.debug("Cannot connect to broker %s:%s", options["broker"], options["port"])
-        pass
 
 
 def serve(options, logger):

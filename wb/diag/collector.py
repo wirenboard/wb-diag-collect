@@ -17,6 +17,9 @@ class Collector:
             try:
                 self.log_stream = StringIO()
                 self.log_stream_handler = logging.StreamHandler(self.log_stream)
+                self.log_stream_handler.setFormatter(
+                    logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+                )
                 self.logger.setLevel(self.logger.getEffectiveLevel())
                 self.logger.addHandler(self.log_stream_handler)
 
@@ -34,7 +37,7 @@ class Collector:
                 self.logger.error(e.strerror, exc_info=(self.logger.level <= logging.DEBUG))
 
             finally:
-                with open("{0}/{1}".format(tmpdir, "wb-diag-collect"), "w") as logfile:
+                with open("{0}/{1}".format(tmpdir, "wb-diag-collect.log"), "w") as logfile:
                     self.log_stream.seek(0)
                     shutil.copyfileobj(self.log_stream, logfile)
 
@@ -120,7 +123,7 @@ class Collector:
                     services.append(systemctl_service)
                     break
 
-        os.mkdir("{0}/service".format(directory))
+        os.mkdir("{0}/service".format(directory), exist_ok=True)
 
         for service in services:
             with open("{0}/service/{1}.log".format(directory, service), "w") as file:
