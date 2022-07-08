@@ -84,7 +84,8 @@ class MQTTRPCServer:
         for service, method in self.dispatcher.keys():
             self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), retain=True)
 
-        self.client.loop()
+        # timeout in last loop for publish execution control
+        self.client.loop(timeout=1.0)
 
         self.run = False
         self.logger.debug("Disconnecting with broker")

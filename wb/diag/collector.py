@@ -55,7 +55,7 @@ class Collector:
                     root_dir=tmpdir,
                 )
 
-    def apply_file_wildcard(self, wildcard: str):
+    def apply_file_wildcard(self, wildcard: str, timeout):
         proc = subprocess.Popen(
             "find {0} -type f,l".format(wildcard),
             shell=True,
@@ -63,22 +63,26 @@ class Collector:
             stderr=subprocess.STDOUT,
         )
 
-        cmd_res = proc.stdout.readlines()
-        file_paths = []
+        try:
+            if proc.wait(timeout) != 0:
+                self.logger.warning("No files for wildcard %s", wildcard)
+                return []
 
-        if proc.poll() != 0:
-            self.logger.warning("No files for wildcard %s", wildcard)
+            file_paths = []
+            cmd_res = proc.stdout.readlines()
+
+            for line in cmd_res:
+                path = line.decode().strip()
+                file_paths.append(path)
+
             return file_paths
-
-        for line in cmd_res:
-            path = line.decode().strip()
-            file_paths.append(path)
-
-        return file_paths
+        except subprocess.TimeoutExpired:
+            self.logger.warning("Timeout was expired for wildcard %s", wildcard)
+            return []
 
     def copy_files(self, directory, wildcards):
         for wildcard in wildcards:
-            file_paths = self.apply_file_wildcard(wildcard) or []
+            file_paths = self.apply_file_wildcard(wildcard, 1.0) or []
             for path in file_paths:
                 os.makedirs("{0}/{1}".format(directory, os.path.dirname(path)), exist_ok=True)
                 shutil.copyfile(path, "{0}/{1}".format(directory, path))
@@ -123,7 +127,7 @@ class Collector:
                     services.append(systemctl_service)
                     break
 
-        os.mkdir("{0}/service".format(directory), exist_ok=True)
+        os.makedirs("{0}/service".format(directory), exist_ok=True)
 
         for service in services:
             with open("{0}/service/{1}.log".format(directory, service), "w") as file:
