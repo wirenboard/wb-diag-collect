@@ -3,7 +3,7 @@ import os
 import signal
 import subprocess
 from contextlib import contextmanager
-import urllib
+import urllib.parse
 
 from mqttrpc import MQTTRPCResponseManager, dispatcher
 from paho.mqtt import client as mqttclient
