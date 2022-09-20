@@ -28,7 +28,7 @@ class MQTTRPCServer:
             logger.debug("Connecting to broker %s", broker)
             self.client = paho_socket.Client("wb-diag-collect")
             self.client.on_message = self.on_message
-            self.client.sock_connect(url.netloc + url.path)
+            self.client.sock_connect(url.path)
         else:
             port = options["port"]
             logger.debug("Connecting to broker %s:%s", broker, port)
