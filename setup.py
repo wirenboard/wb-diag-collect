@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='wb-diag-collect',
-      version='1.0',
+      version='1.4.0',
       description='Diagnostic collector',
       author='Sokolov Semen',
       author_email='s.sokolov@wirenboard.ru',
