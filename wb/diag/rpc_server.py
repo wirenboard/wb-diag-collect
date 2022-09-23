@@ -3,9 +3,11 @@ import os
 import signal
 import subprocess
 from contextlib import contextmanager
+import urllib.parse
 
 from mqttrpc import MQTTRPCResponseManager, dispatcher
 from paho.mqtt import client as mqttclient
+import paho_socket
 
 from wb.diag import collector
 
@@ -20,11 +22,19 @@ class MQTTRPCServer:
         self.dispatcher.add_method(self.diag)
         self.dispatcher.add_method(self.status)
 
-        self.client = mqttclient.Client("wb-diag-collect")
-        self.client.on_message = self.on_message
-
-        logger.debug("Connecting to broker %s:%s", options["broker"], options["port"])
-        self.client.connect(options["broker"], options["port"])
+        broker = options["broker"]
+        url = urllib.parse.urlparse(broker)
+        if url.scheme == 'unix':
+            logger.debug("Connecting to broker %s", broker)
+            self.client = paho_socket.Client("wb-diag-collect")
+            self.client.on_message = self.on_message
+            self.client.sock_connect(url.path)
+        else:
+            port = options["port"]
+            logger.debug("Connecting to broker %s:%s", broker, port)
+            self.client = mqttclient.Client("wb-diag-collect")
+            self.client.on_message = self.on_message
+            self.client.connect(broker, port)
 
         self.run = True
 
