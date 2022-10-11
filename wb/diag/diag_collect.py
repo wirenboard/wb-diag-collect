@@ -56,7 +56,7 @@ def main(argv=sys.argv):
 
             if args.server:
                 options["broker"] = yaml_data["mqtt"]["broker"]
-                options["port"] = yaml_data["mqtt"]["port"]
+                options["port"] = yaml_data["mqtt"].get("port", 0)
 
         if args.server:
             rpc_server.serve(options, logger)
