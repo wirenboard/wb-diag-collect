@@ -1,3 +1,9 @@
+wb-diag-collect (1.4.1) stable; urgency=medium
+
+  * fix config parsing error
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.ru>  Tue, 11 Oct 2022 14:41:20 +0500
+
 wb-diag-collect (1.4.0) stable; urgency=medium
 
   * Support connection to Mosquitto through unix socket
