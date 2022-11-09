@@ -1,3 +1,9 @@
+wb-diag-collect (1.4.2) stable; urgency=medium
+
+  * add dependency on mosquitto.service to wait for UNIX socket file
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 09 Nov 2022 19:38:56 +0600
+
 wb-diag-collect (1.4.1) stable; urgency=medium
 
   * fix config parsing error

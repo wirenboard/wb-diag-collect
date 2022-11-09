@@ -1,7 +1,6 @@
 [Unit]
 Description=one-click diagnostic data collector for Wiren Board, generating archive with data
-Wants=wb-hwconf-manager.service wb-modules.service
-After=wb-hwconf-manager.service wb-modules.service
+After=wb-hwconf-manager.service mosquitto.service
 
 [Service]
 Type=simple
