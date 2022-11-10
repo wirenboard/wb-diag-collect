@@ -1,1 +1,1 @@
-buildDebSbuild defaultTargets: 'bullseye-host'
+buildDebArchAll defaultDebianRelease: 'bullseye'
