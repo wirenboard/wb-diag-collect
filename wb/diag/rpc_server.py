@@ -2,12 +2,12 @@ import logging
 import os
 import signal
 import subprocess
-from contextlib import contextmanager
 import urllib.parse
+from contextlib import contextmanager
 
+import paho_socket
 from mqttrpc import MQTTRPCResponseManager, dispatcher
 from paho.mqtt import client as mqttclient
-import paho_socket
 
 from wb.diag import collector
 
@@ -24,7 +24,7 @@ class MQTTRPCServer:
 
         broker = options["broker"]
         url = urllib.parse.urlparse(broker)
-        if url.scheme == 'unix':
+        if url.scheme == "unix":
             logger.debug("Connecting to broker %s", broker)
             self.client = paho_socket.Client("wb-diag-collect")
             self.client.on_message = self.on_message
