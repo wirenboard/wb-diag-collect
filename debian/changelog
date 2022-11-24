@@ -1,3 +1,9 @@
+wb-diag-collect (1.4.3) stable; urgency=medium
+
+  * fix high CPU load on broker reconnections
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 23 Nov 2022 21:39:35 +0600
+
 wb-diag-collect (1.4.2) stable; urgency=medium
 
   * add dependency on mosquitto.service to wait for UNIX socket file
