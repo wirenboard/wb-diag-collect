@@ -13,6 +13,8 @@ from paho.mqtt import client as mqttclient
 
 from wb.diag import collector
 
+EXIT_FAILURE = 1
+
 
 class MQTTRPCServer:
     def __init__(self, options, dispatcher, logger):
@@ -50,14 +52,11 @@ class MQTTRPCServer:
         self.wb_archive_collector = collector.Collector(logger)
 
     def _on_connect(self, client, userdata, flags, rc, *_):
-        # TODO: more graceful exit here + guideline
+        # TODO: graceful exit here + guideline
         # https://wirenboard.bitrix24.ru/workgroups/group/218/tasks/task/view/55510/
         if rc != 0:
-            if rc in [4, 5]:
-                self.logger.error("MQTT broker authorization failed, code %d", rc)
-                sys.exit(6)  # NOTCONFIGURED, will not restart automatically
-            else:
-                self.logger.error("MQTT broker connection failed, code %d", rc)
+            self.logger.error("MQTT broker connection failed, code %d", rc)
+            sys.exit(EXIT_FAILURE)
 
         self.logger.debug("Settings up RPC endpoints")
         for service, method in self.dispatcher.keys():
