@@ -26,7 +26,7 @@ class MQTTRPCServer:
         self.dispatcher.add_method(self.status)
 
         self.client = mqttclient.Client("wb-diag-collect")
-        self.client.on_message = self.on_message
+        self.client.on_message = self._on_message
         self.client.on_connect = self._on_connect
 
         logger.debug("Connecting to broker %s:%s", options["broker"], options["port"])
