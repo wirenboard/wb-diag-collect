@@ -1,3 +1,12 @@
+wb-diag-collect (1.3.0-wb101) stable; urgency=medium
+
+  * add dmesg from previous boot (if available)
+  * add NetworkManager and ModemManager logs + suitable info
+  * add apt and mosquitto logs (from files)
+  * get serial number from wb-gen-serial
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 28 Dec 2022 12:56:04 +0600
+
 wb-diag-collect (1.3.0-wb100) stable; urgency=medium
 
   * fix high CPU load on broker reconnections
