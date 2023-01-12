@@ -1,3 +1,9 @@
+wb-diag-collect (1.5.1) stable; urgency=medium
+
+  * Code formatting
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.ru>  Thu, 12 Jan 2023 12:33:48 +0300
+
 wb-diag-collect (1.5.0) stable; urgency=medium
 
   * add dmesg from previous boot (if available)
