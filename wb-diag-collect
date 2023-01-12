@@ -2,4 +2,5 @@
 
 import sys
 from wb.diag.diag_collect import main
+
 sys.exit(main())
