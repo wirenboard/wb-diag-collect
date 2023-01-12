@@ -1,1 +1,2 @@
-buildDebArchAll defaultDebianRelease: 'bullseye'
+buildDebArchAll defaultDebianRelease: 'bullseye',
+defaultRunPythonChecks: true
