@@ -19,3 +19,5 @@ wb-diag-collect specific
  - [ ] service responds to 'Collect' request from Web UI and gives `.zip` file
  - [ ] service responds after Mosquitto restart
  - [ ] command creates `.zip` file on console run (`wb-diag-collect diag`)
+ - [ ] zip file is valid and contains actual information
+ - [ ] zip file should be less than 1 MB
