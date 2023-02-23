@@ -1,6 +1,8 @@
 import logging
 import os
+import random
 import signal
+import string
 import subprocess
 import sys
 import threading
@@ -30,16 +32,17 @@ class MQTTRPCServer:
 
         broker = options["broker"]
         url = urllib.parse.urlparse(broker)
+        client_id = "wb-diag-collect-" + "".join(random.sample(string.ascii_letters + string.digits, 8))
         if url.scheme == "unix":
             logger.debug("Connecting to broker %s", broker)
-            self.client = paho_socket.Client("wb-diag-collect")
+            self.client = paho_socket.Client(client_id)
             self.client.on_message = self._on_message
             self.client.on_connect = self._on_connect
             self.client.sock_connect(url.path)
         else:
             port = options["port"]
             logger.debug("Connecting to broker %s:%s", broker, port)
-            self.client = mqttclient.Client("wb-diag-collect")
+            self.client = mqttclient.Client(client_id)
             self.client.on_message = self._on_message
             self.client.on_connect = self._on_connect
             self.client.connect(broker, port)

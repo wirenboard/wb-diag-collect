@@ -1,3 +1,9 @@
+wb-mqtt-collect (1.5.2) stable; urgency=medium
+
+  * Dump mosquitto $SYS topic
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 23 Feb 2023 15:12:00 +0400
+
 wb-diag-collect (1.5.1) stable; urgency=medium
 
   * Code formatting
