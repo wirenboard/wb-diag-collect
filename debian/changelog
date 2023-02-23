@@ -1,4 +1,4 @@
-wb-mqtt-collect (1.5.2) stable; urgency=medium
+wb-diag-collect (1.5.2) stable; urgency=medium
 
   * Dump mosquitto $SYS topic
 
