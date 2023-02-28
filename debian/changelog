@@ -1,3 +1,9 @@
+wb-diag-collect (1.5.3) stable; urgency=medium
+
+  * Use mqtt client wrapper from wb-common
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 28 Feb 2023 18:39:00 +0400
+
 wb-diag-collect (1.5.2) stable; urgency=medium
 
   * Dump mosquitto $SYS topic
