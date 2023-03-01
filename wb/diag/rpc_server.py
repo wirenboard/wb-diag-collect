@@ -30,7 +30,7 @@ class MQTTRPCServer:
         logger.debug("Connecting to broker %s", broker)
         self.client.on_message = self._on_message
         self.client.on_connect = self._on_connect
-        self.client.connect()
+        self.client.start()
 
         signal.signal(signal.SIGINT, self._signal)
         signal.signal(signal.SIGTERM, self._signal)
@@ -105,11 +105,9 @@ class MQTTRPCServer:
                 )
             for pub in pubs:
                 pub.wait_for_publish()
-
-            self.logger.debug("Disconnecting from broker")
-            self.client.disconnect()
         finally:
-            self.client.loop_stop()
+            self.logger.debug("Disconnecting from broker")
+            self.client.stop()
 
 
 @contextmanager
