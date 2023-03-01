@@ -6,8 +6,9 @@ import threading
 from contextlib import contextmanager
 
 from mqttrpc import MQTTRPCResponseManager, dispatcher
-from wb.diag import collector
 from wb_common.mqtt_client import MQTTClient
+
+from wb.diag import collector
 
 EXIT_FAILURE = 1
 

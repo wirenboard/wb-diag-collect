@@ -4,8 +4,9 @@ import sys
 from enum import IntEnum
 
 import yaml
-from wb.diag import collector, rpc_server
 from yaml.loader import SafeLoader
+
+from wb.diag import collector, rpc_server
 
 DEFAULT_CONF_PATH = "/usr/share/wb-diag-collect/wb-diag-collect.conf"
 
