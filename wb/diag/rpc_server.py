@@ -1,17 +1,12 @@
-import logging
 import os
-import random
 import signal
-import string
 import subprocess
 import sys
 import threading
-import urllib.parse
 from contextlib import contextmanager
 
-import paho_socket
 from mqttrpc import MQTTRPCResponseManager, dispatcher
-from paho.mqtt import client as mqttclient
+from wb_common.mqtt_client import MQTTClient
 
 from wb.diag import collector
 
@@ -31,23 +26,11 @@ class MQTTRPCServer:
         self._stop_event = threading.Event()
 
         broker = options["broker"]
-        url = urllib.parse.urlparse(broker)
-        client_id = "wb-diag-collect-" + "".join(random.sample(string.ascii_letters + string.digits, 8))
-        if url.scheme == "unix":
-            logger.debug("Connecting to broker %s", broker)
-            self.client = paho_socket.Client(client_id)
-            self.client.on_message = self._on_message
-            self.client.on_connect = self._on_connect
-            self.client.sock_connect(url.path)
-        else:
-            port = options["port"]
-            logger.debug("Connecting to broker %s:%s", broker, port)
-            self.client = mqttclient.Client(client_id)
-            self.client.on_message = self._on_message
-            self.client.on_connect = self._on_connect
-            self.client.connect(broker, port)
-
-        self.client.loop_start()
+        self.client = MQTTClient("wb-diag-collect", broker)
+        logger.debug("Connecting to broker %s", broker)
+        self.client.on_message = self._on_message
+        self.client.on_connect = self._on_connect
+        self.client.start()
 
         signal.signal(signal.SIGINT, self._signal)
         signal.signal(signal.SIGTERM, self._signal)
@@ -122,24 +105,22 @@ class MQTTRPCServer:
                 )
             for pub in pubs:
                 pub.wait_for_publish()
-
-            self.logger.debug("Disconnecting from broker")
-            self.client.disconnect()
         finally:
-            self.client.loop_stop()
+            self.logger.debug("Disconnecting from broker")
+            self.client.stop()
 
 
 @contextmanager
-def rpc_server_context(name, options, dispatcher, logger):
+def rpc_server_context(options, dispatcher, logger):
     try:
         rpc_server = MQTTRPCServer(options, dispatcher, logger)
         yield rpc_server
     except (TimeoutError, ConnectionRefusedError):
-        logger.error("Cannot connect to broker %s:%s", options["broker"], options["port"], exc_info=True)
+        logger.error("Cannot connect to broker %s", options["broker"], exc_info=True)
     finally:
         rpc_server.stop()
 
 
 def serve(options, logger):
-    with rpc_server_context("wb-diag-collect", options, dispatcher, logger) as server:
+    with rpc_server_context(options, dispatcher, logger) as server:
         server.wait_for_stop()
