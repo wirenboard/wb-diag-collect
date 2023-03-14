@@ -1,3 +1,9 @@
+wb-diag-collect (1.5.4) stable; urgency=medium
+
+  * add systemctl list-unit-files output to determine disabled units
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Tue, 14 Mar 2023 16:45:30 +0600
+
 wb-diag-collect (1.5.3) stable; urgency=medium
 
   * Use mqtt client wrapper from wb-common
