@@ -1,3 +1,10 @@
+wb-diag-collect (1.5.6) stable; urgency=medium
+
+  * Hide passwords from wb-mqtt-serial.conf
+  * Collect ip-a/ip-route/nmcli dumps
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 06 Apr 2023 11:03:00 +0400
+
 wb-diag-collect (1.5.5) stable; urgency=medium
 
   * Collect wb-mqtt-serial.conf
