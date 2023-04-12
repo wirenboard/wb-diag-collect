@@ -1,3 +1,10 @@
+wb-diag-collect (1.5.7) stable; urgency=medium
+
+  * Fix parsing wb-mqtt-serial.conf with comments
+  * Collect wpa_supplicant.service logs
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 12 Apr 2023 13:11:00 +0400
+
 wb-diag-collect (1.5.6) stable; urgency=medium
 
   * Hide passwords from wb-mqtt-serial.conf
