@@ -1,3 +1,9 @@
+wb-diag-collect (1.5.9) stable; urgency=medium
+
+  * Collect all /etc/wb-*.conf
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 24 May 2023 10:12:00 +0400
+
 wb-diag-collect (1.5.8) stable; urgency=medium
 
   * Remove emmcparm proprietary options for Micron flash drive
