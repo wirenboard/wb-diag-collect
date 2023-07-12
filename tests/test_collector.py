@@ -5,8 +5,9 @@ from tempfile import TemporaryDirectory
 
 import pytest
 import yaml
-from wb.diag.collector import Collector
 from yaml.loader import SafeLoader
+
+from wb.diag.collector import Collector
 
 logger = logging.getLogger(__name__)
 
