@@ -23,7 +23,7 @@ def collect_dir():
 
 @pytest.fixture
 def diag_collect_config():
-    return yaml.load(Path("./wb-diag-collect.conf").read_text(), Loader=SafeLoader)
+    return yaml.load(Path("./tests/data/wb-diag-collect.conf").read_text(), Loader=SafeLoader)
 
 
 def test_filter_files(collect_dir, diag_collect_config):
