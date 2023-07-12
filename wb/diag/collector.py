@@ -1,6 +1,8 @@
 import datetime
+import glob
 import logging
 import os
+import re
 import shutil
 import subprocess
 from fnmatch import fnmatch
@@ -24,6 +26,7 @@ class Collector:
                 self.logger.addHandler(self.log_stream_handler)
 
                 self.copy_files(tmpdir, options["files"])
+                self.filter_files(tmpdir, options["filters"])
                 self.execute_commands(tmpdir, options["commands"], 5.0)
                 self.copy_journalctl(tmpdir, options["service_names"], options["service_lines_number"], 5.0)
 
@@ -86,6 +89,15 @@ class Collector:
             for path in file_paths:
                 os.makedirs("{0}/{1}".format(directory, os.path.dirname(path)), exist_ok=True)
                 shutil.copyfile(path, "{0}/{1}".format(directory, path))
+
+    def filter_files(self, directory, filters):
+        for filter_data in filters:
+            for path in glob.glob(os.path.join(directory, filter_data["glob"])):
+                with open(path, "r+") as f:
+                    content = re.sub(filter_data["pattern"], filter_data["repl"], f.read())
+                    f.seek(0)
+                    f.write(content)
+                    f.truncate()
 
     def execute_commands(self, directory, commands, timeout):
         for command_data in commands:

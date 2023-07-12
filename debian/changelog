@@ -1,3 +1,11 @@
+wb-diag-collect (1.6.0) stable; urgency=medium
+
+  * Collect /etc/mosquitto/{mosquitto.conf,acl/*.conf,conf.d/*.conf}
+  * Collect /usr/lib/wb-release
+  * Support filters to hide sensitive data
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 12 Jul 2023 16:29:00 +0400
+
 wb-diag-collect (1.5.9) stable; urgency=medium
 
   * Collect all /etc/wb-*.conf

@@ -51,6 +51,7 @@ def main(argv=sys.argv):
             options = {}
             options["commands"] = yaml_data["commands"] or []
             options["files"] = yaml_data["files"] or []
+            options["filters"] = yaml_data["filters"] or []
             options["service_lines_number"] = yaml_data["journald_logs"]["lines_number"] or 0
             options["service_names"] = yaml_data["journald_logs"]["names"]
 
