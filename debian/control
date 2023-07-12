@@ -2,7 +2,7 @@ Source: wb-diag-collect
 Section: misc
 Priority: optional
 Maintainer: Wiren Board Team <info@wirenboard.com>
-Build-Depends: debhelper (>= 10), dh-python, python3-all, python3-setuptools, python3-pytest, pkg-config
+Build-Depends: debhelper (>= 10), dh-python, python3-all, python3-setuptools, python3-pytest, python3-yaml, pkg-config
 Standards-Version: 4.5.0
 Homepage: https://github.com/wirenboard/wb-diag-collect
 X-Python3-Version: >= 3.5
