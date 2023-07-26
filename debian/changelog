@@ -4,6 +4,18 @@ wb-diag-collect (1.7.0) stable; urgency=medium
 
  -- Pavel Gasheev <pavel.gasheev@wirenboard.ru>  Wed, 26 Jul 2023 09:33:39 +0300
 
+wb-diag-collect (1.7.0) stable; urgency=medium
+
+  * Remove python3-wb-diag-collect deb package
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 26 Jul 2023 12:59:00 +0400
+
+wb-diag-collect (1.6.2) stable; urgency=medium
+
+  * Collect factoryreset.fit meta info
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 25 Jul 2023 19:21:00 +0400
+
 wb-diag-collect (1.6.1) stable; urgency=medium
 
   * Fix PKG-INFO
