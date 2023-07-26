@@ -1,3 +1,9 @@
+wb-diag-collect (1.7.0) stable; urgency=medium
+
+  * Remove python3-wb-diag-collect deb package
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 26 Jul 2023 12:59:00 +0400
+
 wb-diag-collect (1.6.2) stable; urgency=medium
 
   * Collect factoryreset.fit meta info
