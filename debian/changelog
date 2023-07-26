@@ -1,3 +1,9 @@
+wb-diag-collect (1.7.0) stable; urgency=medium
+
+  * Add Embedded Controller files
+
+ -- Pavel Gasheev <pavel.gasheev@wirenboard.ru>  Wed, 26 Jul 2023 09:33:39 +0300
+
 wb-diag-collect (1.6.1) stable; urgency=medium
 
   * Fix PKG-INFO
