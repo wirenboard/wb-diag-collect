@@ -1,3 +1,9 @@
+wb-diag-collect (1.6.2) stable; urgency=medium
+
+  * Collect factoryreset.fit meta info
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 25 Jul 2023 19:21:00 +0400
+
 wb-diag-collect (1.6.1) stable; urgency=medium
 
   * Fix PKG-INFO
