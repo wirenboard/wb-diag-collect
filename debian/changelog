@@ -4,9 +4,15 @@ wb-diag-collect (1.8.0) stable; urgency=medium
 
  -- Pavel Gasheev <pavel.gasheev@wirenboard.ru>  Wed, 26 Jul 2023 13:53:28 +0300
 
+wb-diag-collect (1.7.1) stable; urgency=medium
+
+  * Add transitional dummy package, no functional changes
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 26 Jul 2023 17:21:00 +0400
+
 wb-diag-collect (1.7.0) stable; urgency=medium
 
-  * Remove python3-wb-diag-collect deb package
+  * Remove python3-wb-diag-collect deb package, no functional changes
 
  -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 26 Jul 2023 12:59:00 +0400
 
