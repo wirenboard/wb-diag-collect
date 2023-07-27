@@ -2,7 +2,7 @@ wb-diag-collect (1.8.0) stable; urgency=medium
 
   * Add Embedded Controller files
 
- -- Pavel Gasheev <pavel.gasheev@wirenboard.ru>  Wed, 26 Jul 2023 13:53:28 +0300
+ -- Pavel Gasheev <pavel.gasheev@wirenboard.ru>  Thu, 27 Jul 2023 14:11:27 +0300
 
 wb-diag-collect (1.7.1) stable; urgency=medium
 
