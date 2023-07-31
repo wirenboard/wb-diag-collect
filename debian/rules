@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
-export PYBUILD_NAME=wb-diag-collect
+export PYBUILD_INSTALL_ARGS=--install-lib=/usr/share/wb-diag-collect/ --install-scripts=/usr/share/wb-diag-collect/
+export PYBUILD_DESTDIR_python3=debian/wb-diag-collect
 
 %:
 	dh $@ --with python3 --buildsystem pybuild
