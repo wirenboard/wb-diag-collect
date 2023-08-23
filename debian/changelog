@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.1) stable; urgency=medium
+
+  * Collect nginx logs and FIT update wb-console.log
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 23 Aug 2023 15:01:57 +0600
+
 wb-diag-collect (1.8.0) stable; urgency=medium
 
   * Add Embedded Controller files
