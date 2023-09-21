@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.2) stable; urgency=medium
+
+  * add factory reset logs
+
+ -- Nikita Maslov <nikita.maslov@wirenboard.ru>  Wed, 20 Sep 2023 18:16:15 +0600
+
 wb-diag-collect (1.8.1) stable; urgency=medium
 
   * Collect nginx logs and FIT update wb-console.log
