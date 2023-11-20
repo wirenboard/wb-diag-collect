@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.3) stable; urgency=medium
+
+  * add various ps info to free.log file
+
+ -- Aleksandr Kazadaev <aleksandr.kazadaev@wirenboard.com>  Mon, 20 Sep 2023 19:50:15 +0600
+
 wb-diag-collect (1.8.2) stable; urgency=medium
 
   * add factory reset logs
