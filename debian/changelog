@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.4) stable; urgency=medium
+
+  * Add wb-mqtt-urri config to files
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Wed, 17 Jan 2024 18:33:10 +0300
+
 wb-diag-collect (1.8.3) stable; urgency=medium
 
   * add various ps info to free.log file
