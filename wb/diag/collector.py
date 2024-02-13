@@ -27,8 +27,10 @@ class Collector:
 
                 self.copy_files(tmpdir, options["files"])
                 self.filter_files(tmpdir, options["filters"])
-                self.execute_commands(tmpdir, options["commands"], 5.0)
-                self.copy_journalctl(tmpdir, options["service_names"], options["service_lines_number"], 5.0)
+                self.execute_commands(tmpdir, options["commands"], options["timeout"])
+                self.copy_journalctl(
+                    tmpdir, options["service_names"], options["service_lines_number"], options["timeout"]
+                )
 
             except FileNotFoundError as e:
                 self.logger.error(

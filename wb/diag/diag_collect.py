@@ -35,6 +35,9 @@ def main(argv=sys.argv):
     parser.add_argument("-s", "--server", action="store_true", help="run server")
     parser.add_argument("-d", "--debug", action="store_true", help="set debug logging level")
     parser.add_argument(
+        "-t", "--timeout", action="store", type=int, help="set timeout for commands execution"
+    )
+    parser.add_argument(
         "output_filename", metavar="output_filename", type=str, nargs=1, help="output filename"
     )
 
@@ -54,6 +57,7 @@ def main(argv=sys.argv):
             options["filters"] = yaml_data["filters"] or []
             options["service_lines_number"] = yaml_data["journald_logs"]["lines_number"] or 0
             options["service_names"] = yaml_data["journald_logs"]["names"]
+            options["timeout"] = args.timeout or yaml_data["timeout"]
 
             if args.server:
                 options["broker"] = yaml_data["mqtt"]["broker"]
