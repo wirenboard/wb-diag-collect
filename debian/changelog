@@ -1,3 +1,10 @@
+wb-diag-collect (1.8.9) stable; urgency=medium
+
+  * Add last unfiltered log records
+  * Use dmesg instead of journalctl
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Thu, 02 May 2024 15:26:07 +0500
+
 wb-diag-collect (1.8.8) stable; urgency=medium
 
   * add wbec uid to archive
