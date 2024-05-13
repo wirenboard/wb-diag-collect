@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.10) stable; urgency=medium
+
+  * Increase journald_logs.lines_number to 5000
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Mon, 13 May 2024 15:21:00 +0400
+
 wb-diag-collect (1.8.9) stable; urgency=medium
 
   * Add last unfiltered log records
