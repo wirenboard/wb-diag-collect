@@ -19,10 +19,10 @@ class Collector:
             try:
                 self.log_stream = StringIO()
                 self.log_stream_handler = logging.StreamHandler(self.log_stream)
+                self.log_stream_handler.setLevel(logging.DEBUG)
                 self.log_stream_handler.setFormatter(
                     logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
                 )
-                self.logger.setLevel(self.logger.getEffectiveLevel())
                 self.logger.addHandler(self.log_stream_handler)
 
                 self.copy_files(tmpdir, options["files"])
