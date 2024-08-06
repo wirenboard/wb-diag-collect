@@ -70,7 +70,7 @@ class Collector:
 
         try:
             if proc.wait(timeout) != 0:
-                self.logger.warning("No files for wildcard %s", wildcard)
+                self.logger.debug("No files for wildcard %s", wildcard)
                 return []
 
             file_paths = []

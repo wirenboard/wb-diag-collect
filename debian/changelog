@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.12) stable; urgency=medium
+
+  * Hide "No files for wildcard" warnings to debug
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Tue, 06 Aug 2024 16:58:21 +0300
+
 wb-diag-collect (1.8.11) stable; urgency=medium
 
   * Hide PIN from *.nmconnection files
