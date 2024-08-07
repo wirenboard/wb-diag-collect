@@ -18,13 +18,7 @@ class ResultCode(IntEnum):
 
 
 logger = logging.getLogger(__name__)
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-logger.addHandler(console_handler)
-
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def main(argv=sys.argv):
@@ -44,8 +38,13 @@ def main(argv=sys.argv):
     args = parser.parse_args(argv[1:])
     conf_path = args.config
 
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    console_loglevel = logging.INFO
     if args.debug:
-        logger.setLevel(logging.DEBUG)
+        console_loglevel = logging.DEBUG
+    console_handler.setLevel(console_loglevel)
+    logger.addHandler(console_handler)
 
     try:
         with open(conf_path or DEFAULT_CONF_PATH) as f:
