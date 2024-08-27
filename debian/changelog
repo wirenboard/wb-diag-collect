@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.13) stable; urgency=medium
+
+  * Add wb-welrok.conf
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Tue, 27 Aug 2024 15:44:04 +0500
+
 wb-diag-collect (1.8.12) stable; urgency=medium
 
   * Hide "No files for wildcard" warnings to debug
