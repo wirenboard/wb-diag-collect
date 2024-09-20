@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.14) stable; urgency=medium
+
+  * Add /var/log/apt/term.log
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 20 Sep 2024 18:48:00 +0400
+
 wb-diag-collect (1.8.13) stable; urgency=medium
 
   * Add wb-welrok.conf
