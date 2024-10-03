@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.15) stable; urgency=medium
+
+  * Add /etc/group, mosquitto-perms
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 03 Oct 2024 10:18:00 +0400
+
 wb-diag-collect (1.8.14) stable; urgency=medium
 
   * Add /var/log/apt/term.log
