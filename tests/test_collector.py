@@ -23,17 +23,17 @@ def collect_dir():
 
 @pytest.fixture
 def diag_collect_config():
-    return yaml.load(Path("./tests/data/wb-diag-collect.conf").read_text(), Loader=SafeLoader)
+    return yaml.load(Path("./tests/data/wb-diag-collect.conf").read_text(encoding="utf-8"), Loader=SafeLoader)
 
 
-def test_filter_files(collect_dir, diag_collect_config):
+def test_filter_files(collect_dir, diag_collect_config):  # pylint:disable=redefined-outer-name
     collector = Collector(logger)
     collector.filter_files(collect_dir, diag_collect_config["filters"])
 
-    filtered = Path(collect_dir + "/etc/mosquitto/conf.d/20bridge.conf").read_text()
-    expected = Path("./tests/data/etc/mosquitto/conf.d/20bridge.conf.filtered").read_text()
+    filtered = Path(collect_dir + "/etc/mosquitto/conf.d/20bridge.conf").read_text(encoding="utf-8")
+    expected = Path("./tests/data/etc/mosquitto/conf.d/20bridge.conf.filtered").read_text(encoding="utf-8")
     assert filtered == expected
 
-    filtered = Path(collect_dir + "/etc/wb-mqtt-serial.conf").read_text()
-    expected = Path("./tests/data/etc/wb-mqtt-serial.conf.filtered").read_text()
+    filtered = Path(collect_dir + "/etc/wb-mqtt-serial.conf").read_text(encoding="utf-8")
+    expected = Path("./tests/data/etc/wb-mqtt-serial.conf.filtered").read_text(encoding="utf-8")
     assert filtered == expected
