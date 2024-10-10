@@ -2,7 +2,7 @@ wb-diag-collect (1.8.16) stable; urgency=medium
 
   * Enable angry pylint. No functional changes
 
- --  Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Wed, 09 Oct 2024 14:53:22 +0300
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Wed, 09 Oct 2024 14:53:22 +0300
 
 wb-diag-collect (1.8.15) stable; urgency=medium
 
