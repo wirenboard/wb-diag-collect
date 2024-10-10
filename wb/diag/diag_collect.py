@@ -47,7 +47,7 @@ def main(argv=sys.argv):
     logger.addHandler(console_handler)
 
     try:
-        with open(conf_path or DEFAULT_CONF_PATH) as f:
+        with open(conf_path or DEFAULT_CONF_PATH, encoding="utf-8") as f:
             yaml_data = yaml.load(f, Loader=SafeLoader)
 
             options = {}

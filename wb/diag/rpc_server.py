@@ -14,7 +14,7 @@ EXIT_FAILURE = 1
 
 
 class MQTTRPCServer:
-    def __init__(self, options, dispatcher, logger):
+    def __init__(self, options, dispatcher, logger):  # pylint:disable=redefined-outer-name
         self.options = options
         self.logger = logger
         self.dispatcher = dispatcher
@@ -37,8 +37,8 @@ class MQTTRPCServer:
 
         self.wb_archive_collector = collector.Collector(logger)
 
-    def _on_connect(self, client, userdata, flags, rc, *_):
-        # TODO: graceful exit here + guideline
+    def _on_connect(self, _client, _userdata, _flags, rc, *_):
+        # write graceful exit here + guideline
         # https://wirenboard.bitrix24.ru/workgroups/group/218/tasks/task/view/55510/
         if rc != 0:
             self.logger.error("MQTT broker connection failed, code %d", rc)
@@ -46,11 +46,11 @@ class MQTTRPCServer:
 
         self.logger.debug("Settings up RPC endpoints")
         for service, method in self.dispatcher.keys():
-            self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), "1", retain=True)
-            self.logger.debug("Subscribe to /rpc/v1/%s/%s/%s/+", self.driver_id, service, method)
-            self.client.subscribe("/rpc/v1/%s/%s/%s/+" % (self.driver_id, service, method))
+            self.client.publish(f"/rpc/v1/{self.driver_id}/{service}/{method}", "1", retain=True)
+            self.logger.debug(f"Subscribe to /rpc/v1/{self.driver_id}/{service}/{method}/+")
+            self.client.subscribe(f"/rpc/v1/{self.driver_id}/{service}/{method}/+")
 
-    def _on_message(self, mosq, obj, msg):
+    def _on_message(self, _mosq, _obj, msg):
         parts = msg.topic.split("/")
         service_id = parts[4]
         method_id = parts[5]
@@ -59,7 +59,7 @@ class MQTTRPCServer:
         response = MQTTRPCResponseManager.handle(msg.payload, service_id, method_id, self.dispatcher)
 
         self.client.publish(
-            "/rpc/v1/%s/%s/%s/%s/reply" % (self.driver_id, service_id, method_id, client_id),
+            f"/rpc/v1/{self.driver_id}/{service_id}/{method_id}/{client_id}/reply",
             response.json,
             False,
         )
@@ -72,9 +72,9 @@ class MQTTRPCServer:
         try:
             self.logger.debug("Method 'diag' was called")
             try:
-                subprocess.run("rm /var/www/diag/*.zip", shell=True)
+                subprocess.run("rm /var/www/diag/*.zip", check=False, shell=True)
             except OSError:
-                self.logger.warning("Error deleting a directory %s" % "/var/www/diag/*.zip")
+                self.logger.warning('Error deleting a directory "/var/www/diag/*.zip"')
 
             print("Start data collecting")
 
@@ -86,6 +86,7 @@ class MQTTRPCServer:
             return {"basename": os.path.basename(path), "fullname": path}
         except OSError as e:
             print("OSError: with file %s, errno %d", e.filename, e.errno)
+            return None
 
     def wait_for_stop(self):
         self._stop_event.wait()
@@ -100,9 +101,7 @@ class MQTTRPCServer:
 
             pubs = []
             for service, method in self.dispatcher.keys():
-                pubs.append(
-                    self.client.publish("/rpc/v1/%s/%s/%s" % (self.driver_id, service, method), retain=True)
-                )
+                pubs.append(self.client.publish(f"/rpc/v1/{self.driver_id}/{service}/{method}", retain=True))
             for pub in pubs:
                 pub.wait_for_publish()
         finally:
@@ -111,7 +110,7 @@ class MQTTRPCServer:
 
 
 @contextmanager
-def rpc_server_context(options, dispatcher, logger):
+def rpc_server_context(options, dispatcher, logger):  # pylint:disable=redefined-outer-name
     try:
         rpc_server = MQTTRPCServer(options, dispatcher, logger)
         yield rpc_server

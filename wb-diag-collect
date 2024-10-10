@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-
+# pylint:disable=invalid-name
 import sys
 
 # this is recommended by Debian Python Policy
 # see https://www.debian.org/doc/packaging-manuals/python-policy/index.html#programs-shipping-private-modules
 sys.path.append("/usr/share/wb-diag-collect")
-
-from wb.diag.diag_collect import main
+from wb.diag.diag_collect import main  # pylint:disable=wrong-import-position
 
 sys.exit(main())
