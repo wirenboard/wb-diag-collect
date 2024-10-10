@@ -44,7 +44,7 @@ class Collector:
                 self.logger.error(e.strerror, exc_info=self.logger.level <= logging.DEBUG)
 
             finally:
-                with open(os.path.join(tmpdir, "wb-diag-collect.log"), "w", encoding="utf-8") as logfile:
+                with open(f"{tmpdir}/wb-diag-collect.log", "w", encoding="utf-8") as logfile:
                     self.log_stream.seek(0)
                     shutil.copyfileobj(self.log_stream, logfile)
 
@@ -89,8 +89,8 @@ class Collector:
         for wildcard in wildcards:
             file_paths = self.apply_file_wildcard(wildcard, 1.0) or []
             for path in file_paths:
-                os.makedirs(os.path.join(directory, os.path.dirname(path)), exist_ok=True)
-                shutil.copyfile(path, os.path.join(directory, path))
+                os.makedirs(f"{directory}/{os.path.dirname(path)}", exist_ok=True)
+                shutil.copyfile(path, f"{directory}/{path}")
 
     def filter_files(self, directory, filters):
         for filter_data in filters:
@@ -106,9 +106,9 @@ class Collector:
             command = command_data["command"]
             file_name = command_data["filename"]
 
-            os.makedirs(os.path.join(directory, os.path.dirname(file_name)), exist_ok=True)
+            os.makedirs(f"{directory}/{os.path.dirname(file_name)}", exist_ok=True)
 
-            with open(os.path.join(directory, file_name), "w", encoding="utf-8") as file:
+            with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
                 try:
                     with subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT) as proc:
                         proc.wait(timeout)
@@ -139,10 +139,10 @@ class Collector:
                     services.append(systemctl_service)
                     break
 
-        os.makedirs(os.path.join(directory, "service"), exist_ok=True)
+        os.makedirs(f"{directory}/service", exist_ok=True)
 
         for service in services:
-            with open(os.path.join(directory, "service", service), "w", encoding="utf-8") as file:
+            with open(f"{directory}/service/{service}.log", "w", encoding="utf-8") as file:
                 command = f"journalctl -u {service} --no-pager -n {lines_count}"
                 try:
                     with subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT) as proc:
