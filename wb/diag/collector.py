@@ -102,6 +102,9 @@ class Collector:
                     f.truncate()
 
     def execute_commands(self, directory, commands, timeout):
+        env = os.environ.copy()
+        env["LC_ALL"] = "C"
+
         for command_data in commands:
             command = command_data["command"]
             file_name = command_data["filename"]
@@ -110,7 +113,9 @@ class Collector:
 
             with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
                 try:
-                    with subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT) as proc:
+                    with subprocess.Popen(
+                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT  # nosec B602
+                    ) as proc:
                         proc.wait(timeout)
                 except subprocess.TimeoutExpired:
                     self.logger.warning(
@@ -121,9 +126,12 @@ class Collector:
                     )
 
     def copy_journalctl(self, directory, service_wildcards, lines_count, timeout):
+        env = os.environ.copy()
+        env["LC_ALL"] = "C"
 
         with subprocess.Popen(
             "systemctl list-unit-files --no-pager | grep .service",
+            env=env,
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -145,7 +153,9 @@ class Collector:
             with open(f"{directory}/service/{service}.log", "w", encoding="utf-8") as file:
                 command = f"journalctl -u {service} --no-pager -n {lines_count}"
                 try:
-                    with subprocess.Popen(command, shell=True, stdout=file, stderr=subprocess.STDOUT) as proc:
+                    with subprocess.Popen(
+                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT  # nosec B602
+                    ) as proc:
                         proc.wait(timeout)
                 except subprocess.TimeoutExpired:
                     self.logger.warning(
