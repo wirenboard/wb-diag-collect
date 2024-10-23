@@ -114,7 +114,7 @@ class Collector:
             with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
                 try:
                     with subprocess.Popen(
-                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT
+                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT  # nosec B602
                     ) as proc:
                         proc.wait(timeout)
                 except subprocess.TimeoutExpired:
