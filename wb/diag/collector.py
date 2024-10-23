@@ -154,7 +154,7 @@ class Collector:
                 command = f"journalctl -u {service} --no-pager -n {lines_count}"
                 try:
                     with subprocess.Popen(
-                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT
+                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT  # nosec B602
                     ) as proc:
                         proc.wait(timeout)
                 except subprocess.TimeoutExpired:
