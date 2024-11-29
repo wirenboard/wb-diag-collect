@@ -1,3 +1,9 @@
+wb-diag-collect (1.8.18) stable; urgency=medium
+
+  * Add mmcli -m wbc
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Fri, 29 Oct 2024 10:31:22 +0300
+
 wb-diag-collect (1.8.17) stable; urgency=medium
 
   * Set LC_ALL=C for all commands
