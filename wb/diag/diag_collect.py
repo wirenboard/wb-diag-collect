@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import logging
 import sys
 from enum import IntEnum
@@ -67,7 +68,7 @@ def main(argv=sys.argv):
             print("Start data collecting")
 
             wb_archive_collector = collector.Collector(logger)
-            wb_archive_collector.collect(options, "", args.output_filename[0])
+            asyncio.get_event_loop().run_until_complete(wb_archive_collector.collect(options, "", args.output_filename[0]))
 
             print("Data was collected successfully")
 
