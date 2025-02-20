@@ -1,3 +1,10 @@
+wb-diag-collect (1.9.0) stable; urgency=medium
+
+  * Rework internals to asyncio
+  * Fix mqtt rpc timeout on collecting diag from high-loaded controllers
+
+ -- Vladimir Romanov <v.romanov@wirenboard.com>  Thu, 20 Feb 2025 18:29:02 +0300
+
 wb-diag-collect (1.8.18) stable; urgency=medium
 
   * Add mmcli -m wbc

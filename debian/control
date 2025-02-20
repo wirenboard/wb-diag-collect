@@ -21,5 +21,6 @@ Breaks: python3-wb-diag-collect (<< 1.7.0)
 Replaces: python3-wb-diag-collect (<< 1.7.0)
 Provides: python3-wb-diag-collect
 Depends: ${misc:Depends}, ${python3:Depends}, python3-yaml, python3-mqttrpc, python3-wb-common (>= 2.1.0), emmcparm (>= 5.0.0), mqtt-tools
+Recommends: wb-mqtt-homeui (>= 2.110.0~~)
 Description: one-click diagnostic data collector for Wiren Board,
  generating archive with data
