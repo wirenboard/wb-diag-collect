@@ -1,0 +1,2 @@
+wb-diag-collect: dir-or-file-in-var-www var/www/diag/
+wb-diag-collect: dir-or-file-in-var-www var/www/diag/.htaccess

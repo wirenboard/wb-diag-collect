@@ -4,4 +4,8 @@ export PYBUILD_INSTALL_ARGS=--install-lib=/usr/share/wb-diag-collect/ --install-
 export PYBUILD_DESTDIR_python3=debian/wb-diag-collect
 
 %:
-	dh $@ --with python3 --buildsystem pybuild
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_installinit:
+	dh_installinit --noscripts
+
