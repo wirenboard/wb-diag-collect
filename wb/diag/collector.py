@@ -114,7 +114,9 @@ class Collector:
 
             with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
                 try:
-                    proc = await asyncio.create_subprocess_shell(cmd=command, shell=True, env=env, stdout=file, stderr=asyncio.subprocess.STDOUT) # nosec B602
+                    proc = await asyncio.create_subprocess_shell(
+                        cmd=command, shell=True, env=env, stdout=file, stderr=asyncio.subprocess.STDOUT
+                    )  # nosec B602
                     await asyncio.wait_for(proc.wait(), timeout=timeout)
                 except TimeoutError:
                     self.logger.warning(
@@ -124,7 +126,9 @@ class Collector:
                         exc_info=(self.logger.level <= logging.DEBUG),
                     )
 
-    async def copy_journalctl(self, directory, service_wildcards, lines_count, timeout):
+    async def copy_journalctl(
+        self, directory, service_wildcards, lines_count, timeout
+    ):  # pylint:disable=too-many-locals
         env = os.environ.copy()
         env["LC_ALL"] = "C"
 
@@ -153,7 +157,11 @@ class Collector:
                 command = f"journalctl -u {service} --no-pager -n {lines_count}"
                 try:
                     proc = await asyncio.create_subprocess_shell(
-                        command, env=env, shell=True, stdout=file, stderr=asyncio.subprocess.STDOUT  # nosec B602
+                        command,
+                        env=env,
+                        shell=True,
+                        stdout=file,
+                        stderr=asyncio.subprocess.STDOUT,  # nosec B602
                     )
                     await asyncio.wait_for(proc.wait(), timeout=timeout)
                 except TimeoutError:

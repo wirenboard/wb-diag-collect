@@ -17,14 +17,14 @@ EXIT_FAILURE = 1
 
 
 class AsyncMQTTRPCServer:
+    # pylint: disable=too-many-instance-attributes
     DIAG_ARTIFACT_TOPIC = "/wb-diag-collect/artifact"
 
-    def __init__(self, options, dispatcher, logger, asyncio_loop=asyncio.get_event_loop()):  # pylint:disable=redefined-outer-name
+    def __init__(self, options, dispatcher, logger):  # pylint:disable=redefined-outer-name
         self.options = options
         self.logger = logger
         self.driver_id = "diag"
 
-        self.asyncio_loop = asyncio_loop
         self._setup_event_loop()
 
         self.dispatcher = dispatcher
@@ -41,9 +41,10 @@ class AsyncMQTTRPCServer:
         self._diag_collecting_task = None
 
     def _setup_event_loop(self):
+        self.asyncio_loop = asyncio.get_event_loop()
         signals = [signal.SIGINT, signal.SIGTERM]
         for sig in signals:
-            self.asyncio_loop.add_signal_handler(sig, lambda: self.asyncio_loop.stop())
+            self.asyncio_loop.add_signal_handler(sig, self.asyncio_loop.stop)
         self.logger.debug("Add handler for: %s; event loop: %s", str(signals), str(self.asyncio_loop))
 
     def _setup_mqtt_connection(self):
@@ -52,7 +53,7 @@ class AsyncMQTTRPCServer:
         try:
             self.client.start()
         finally:
-            atexit.register(lambda: self.client.stop())
+            atexit.register(self.client.stop)
 
     def _on_connect(self, _client, _userdata, _flags, rc, *_):
         # write graceful exit here + guideline
@@ -89,11 +90,13 @@ class AsyncMQTTRPCServer:
         payload = json.dumps(payload) if payload else None
         self.client.publish(self.DIAG_ARTIFACT_TOPIC, payload=payload, retain=False, qos=1)
 
-    async def launch_diag_collect(self, **kwargs):
+    async def launch_diag_collect(self):
         if self._diag_collecting_task and not self._diag_collecting_task.done():
             self.logger.warning("Diag collecting task is already running")
         else:
-            self._diag_collecting_task = self.asyncio_loop.create_task(self.diag(), name="Collect diagnostics (may be long running)")
+            self._diag_collecting_task = self.asyncio_loop.create_task(
+                self.diag(), name="Collect diagnostics (may be long running)"
+            )
         return "Ok"
 
     async def status(self):
