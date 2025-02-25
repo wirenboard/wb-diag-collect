@@ -62,9 +62,10 @@ class Collector:
             )
 
     async def apply_file_wildcard(self, wildcard: str, timeout):
+        cmd = f"find {wildcard} -type f,l"
         try:
             proc = await asyncio.create_subprocess_shell(
-                f"find {wildcard} -type f,l",
+                cmd=cmd,
                 shell=True,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
