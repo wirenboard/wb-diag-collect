@@ -1,10 +1,10 @@
+import asyncio
 import datetime
 import glob
 import logging
 import os
 import re
 import shutil
-import subprocess
 from fnmatch import fnmatch
 from io import StringIO
 from tempfile import TemporaryDirectory
@@ -16,7 +16,7 @@ class Collector:
         self.log_stream = None
         self.log_stream_handler = None
 
-    def collect(self, options, output_directory, output_filename):
+    async def collect(self, options, output_directory, output_filename):
         with TemporaryDirectory() as tmpdir:
             try:
                 self.log_stream = StringIO()
@@ -27,10 +27,10 @@ class Collector:
                 )
                 self.logger.addHandler(self.log_stream_handler)
 
-                self.copy_files(tmpdir, options["files"])
+                await self.copy_files(tmpdir, options["files"])
                 self.filter_files(tmpdir, options["filters"])
-                self.execute_commands(tmpdir, options["commands"], options["timeout"])
-                self.copy_journalctl(
+                await self.execute_commands(tmpdir, options["commands"], options["timeout"])
+                await self.copy_journalctl(
                     tmpdir, options["service_names"], options["service_lines_number"], options["timeout"]
                 )
 
@@ -61,33 +61,35 @@ class Collector:
                 root_dir=tmpdir,
             )
 
-    def apply_file_wildcard(self, wildcard: str, timeout):
+    async def apply_file_wildcard(self, wildcard: str, timeout):
+        cmd = f"find {wildcard} -type f,l"
         try:
-            with subprocess.Popen(
-                f"find {wildcard} -type f,l",
+            proc = await asyncio.create_subprocess_shell(
+                cmd=cmd,
                 shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-            ) as proc:
-                if proc.wait(timeout) != 0:
-                    self.logger.debug("No files for wildcard %s", wildcard)
-                    return []
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            rc = await asyncio.wait_for(proc.wait(), timeout=timeout)
+            if rc != 0:
+                self.logger.debug("No files for wildcard %s", wildcard)
+                return []
 
-                file_paths = []
-                cmd_res = proc.stdout.readlines()
+            file_paths = []
+            cmd_res = await proc.stdout.read()
 
-                for line in cmd_res:
-                    path = line.decode().strip()
-                    file_paths.append(path)
+            for line in cmd_res.splitlines():
+                path = line.decode().strip()
+                file_paths.append(path)
 
-                return file_paths
-        except subprocess.TimeoutExpired:
+            return file_paths
+        except TimeoutError:
             self.logger.warning("Timeout was expired for wildcard %s", wildcard)
             return []
 
-    def copy_files(self, directory, wildcards):
+    async def copy_files(self, directory, wildcards):
         for wildcard in wildcards:
-            file_paths = self.apply_file_wildcard(wildcard, 1.0) or []
+            file_paths = await self.apply_file_wildcard(wildcard, 1.0) or []
             for path in file_paths:
                 os.makedirs(f"{directory}/{os.path.dirname(path)}", exist_ok=True)
                 shutil.copyfile(path, f"{directory}/{path}")
@@ -101,7 +103,7 @@ class Collector:
                     f.write(content)
                     f.truncate()
 
-    def execute_commands(self, directory, commands, timeout):
+    async def execute_commands(self, directory, commands, timeout):
         env = os.environ.copy()
         env["LC_ALL"] = "C"
 
@@ -113,11 +115,11 @@ class Collector:
 
             with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
                 try:
-                    with subprocess.Popen(
-                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT  # nosec B602
-                    ) as proc:
-                        proc.wait(timeout)
-                except subprocess.TimeoutExpired:
+                    proc = await asyncio.create_subprocess_shell(
+                        cmd=command, shell=True, env=env, stdout=file, stderr=asyncio.subprocess.STDOUT
+                    )  # nosec B602
+                    await asyncio.wait_for(proc.wait(), timeout=timeout)
+                except TimeoutError:
                     self.logger.warning(
                         "Command %s didn't finish in %ds",
                         command,
@@ -125,18 +127,20 @@ class Collector:
                         exc_info=(self.logger.level <= logging.DEBUG),
                     )
 
-    def copy_journalctl(self, directory, service_wildcards, lines_count, timeout):
+    async def copy_journalctl(
+        self, directory, service_wildcards, lines_count, timeout
+    ):  # pylint:disable=too-many-locals
         env = os.environ.copy()
         env["LC_ALL"] = "C"
 
-        with subprocess.Popen(
-            "systemctl list-unit-files --no-pager | grep .service",
+        proc = await asyncio.create_subprocess_shell(
+            cmd="systemctl list-unit-files --no-pager | grep .service",
             env=env,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        ) as proc:
-            cmd_res = proc.stdout.readlines()
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        cmd_res = stdout.splitlines()
 
         services = []
         for line in cmd_res:
@@ -153,11 +157,15 @@ class Collector:
             with open(f"{directory}/service/{service}.log", "w", encoding="utf-8") as file:
                 command = f"journalctl -u {service} --no-pager -n {lines_count}"
                 try:
-                    with subprocess.Popen(
-                        command, env=env, shell=True, stdout=file, stderr=subprocess.STDOUT  # nosec B602
-                    ) as proc:
-                        proc.wait(timeout)
-                except subprocess.TimeoutExpired:
+                    proc = await asyncio.create_subprocess_shell(
+                        command,
+                        env=env,
+                        shell=True,
+                        stdout=file,
+                        stderr=asyncio.subprocess.STDOUT,  # nosec B602
+                    )
+                    await asyncio.wait_for(proc.wait(), timeout=timeout)
+                except TimeoutError:
                     self.logger.warning(
                         "Journalctl reading %s didn't finish in %ds",
                         command,
