@@ -134,7 +134,7 @@ class Collector:
         env["LC_ALL"] = "C"
 
         proc = await asyncio.create_subprocess_shell(
-            cmd="systemctl list-unit-files --no-pager | grep .service",
+            cmd="systemctl list-units --type=service --state=loaded --no-pager --plain | grep .service",
             env=env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
