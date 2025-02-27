@@ -1,3 +1,9 @@
+wb-diag-collect (1.9.1) stable; urgency=medium
+
+  * Fix services logs collection
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 27 Feb 2024 17:19:00 +0400
+
 wb-diag-collect (1.9.0) stable; urgency=medium
 
   * Rework internals to asyncio
