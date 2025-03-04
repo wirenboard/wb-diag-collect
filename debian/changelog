@@ -1,3 +1,9 @@
+wb-diag-collect (1.9.0-wb100) stable; urgency=medium
+
+  * Fix package dependencies
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Tue, 04 Mar 2025 19:03:25 +0500
+
 wb-diag-collect (1.9.0) stable; urgency=medium
 
   * Rework internals to asyncio
