@@ -5,14 +5,7 @@ Maintainer: Wiren Board Team <info@wirenboard.com>
 Build-Depends: debhelper (>= 10), dh-python, python3-all, python3-setuptools, python3-pytest, python3-tomli, python3-yaml, pkg-config
 Standards-Version: 4.5.0
 Homepage: https://github.com/wirenboard/wb-diag-collect
-X-Python3-Version: >= 3.5
-
-Package: python3-wb-diag-collect
-Section: python
-Architecture: all
-Depends: wb-diag-collect (>= 1.7.0)
-Description: transitional dummy package
- This is a transitional dummy package. It can safely be removed.
+X-Python3-Version: >= 3.9
 
 Package: wb-diag-collect
 Architecture: all
@@ -22,5 +15,5 @@ Replaces: python3-wb-diag-collect (<< 1.7.0)
 Provides: python3-wb-diag-collect
 Depends: ${misc:Depends}, ${python3:Depends}, python3-yaml, python3-mqttrpc, python3-wb-common (>= 2.1.0), emmcparm (>= 5.0.0), mqtt-tools
 Recommends: wb-mqtt-homeui (>= 2.111.0~~)
-Description: one-click diagnostic data collector for Wiren Board,
- generating archive with data
+Description: Wirenboard collector of data and logs
+ one-click diagnostic data collector for Wiren Board, generating archive with data.
