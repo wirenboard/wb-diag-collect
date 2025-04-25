@@ -1,8 +1,15 @@
+wb-diag-collect (1.9.2) stable; urgency=medium
+
+  * Fix lintian
+  * Adopt PEP440
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 24 Apr 2025 17:19:00 +0400
+
 wb-diag-collect (1.9.1) stable; urgency=medium
 
   * Fix services logs collection
 
- -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 27 Feb 2024 17:19:00 +0400
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 27 Feb 2025 17:19:00 +0400
 
 wb-diag-collect (1.9.0) stable; urgency=medium
 
