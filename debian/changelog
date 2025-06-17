@@ -1,3 +1,9 @@
+wb-diag-collect (1.9.3) stable; urgency=medium
+
+  * Collect wb-rules-metrics
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Mon, 16 Jun 2025 17:19:00 +0400
+
 wb-diag-collect (1.9.2) stable; urgency=medium
 
   * Fix lintian
