@@ -16,6 +16,12 @@ class Collector:
         self.log_stream = None
         self.log_stream_handler = None
 
+    def branch_test(self, arg):
+        y = 6
+        if arg:
+            y = 4
+        return y
+
     async def collect(self, options, output_directory, output_filename):
         with TemporaryDirectory() as tmpdir:
             try:

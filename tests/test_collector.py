@@ -37,3 +37,7 @@ def test_filter_files(collect_dir, diag_collect_config):  # pylint:disable=redef
     filtered = Path(collect_dir + "/etc/wb-mqtt-serial.conf").read_text(encoding="utf-8")
     expected = Path("./tests/data/etc/wb-mqtt-serial.conf.filtered").read_text(encoding="utf-8")
     assert filtered == expected
+
+    assert collector.branch_test(True) == 4
+
+
