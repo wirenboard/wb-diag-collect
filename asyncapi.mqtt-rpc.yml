@@ -1,0 +1,160 @@
+asyncapi: '3.0.0'
+info:
+  title: wb-diag-collect MQTT-RPC API
+  version: '1.0.0'
+defaultContentType: application/json
+channels:
+  diagMainDiag:
+    address: '/rpc/v1/diag/main/diag/{clientId}'
+    messages:
+      diagMainDiag:
+        $ref: '#/components/messages/diagMainDiag'
+    parameters:
+      clientId:
+        $ref: '#/components/parameters/clientId'
+  diagMainDiagReply:
+    address: '/rpc/v1/diag/main/diag/{clientId}/reply'
+    messages:
+      diagMainDiagReply:
+        $ref: '#/components/messages/diagMainDiagReply'
+    parameters:
+      clientId:
+        $ref: '#/components/parameters/clientId'
+  diagMainStatus:
+    address: '/rpc/v1/diag/main/status/{clientId}'
+    messages:
+      diagMainStatus:
+        $ref: '#/components/messages/diagMainStatus'
+  diagMainStatusReply:
+    address: '/rpc/v1/diag/main/status/{clientId}/reply'
+    messages:
+      diagMainStatusReply:
+        $ref: '#/components/messages/diagMainStatusReply'
+  diagArtifact:
+    address: '/wb-diag-collect/artifact'
+    messages:
+      diagArtifact:
+        $ref: '#/components/messages/diagArtifact'
+operations:
+  diagMainDiag:
+    description: Collect diagnostics
+    action: send
+    channel:
+      $ref: '#/channels/diagMainDiag'
+    traits:
+      - $ref: '#/components/operationTraits/mqtt'
+    messages:
+      - $ref: '#/channels/diagMainDiag/messages/diagMainDiag'
+    reply:
+      channel:
+        $ref: '#/channels/diagMainDiagReply'
+      messages:
+        - $ref: '#/channels/diagMainDiagReply/messages/diagMainDiagReply'
+  diagMainStatus:
+    description: Get service status
+    action: send
+    channel:
+      $ref: '#/channels/diagMainStatus'
+    traits:
+      - $ref: '#/components/operationTraits/mqtt'
+    messages:
+      - $ref: '#/channels/diagMainStatus/messages/diagMainStatus'
+    reply:
+      channel:
+        $ref: '#/channels/diagMainStatusReply'
+      messages:
+        - $ref: '#/channels/diagMainStatusReply/messages/diagMainStatusReply'
+  diagArtifact:
+    description: Receive diagnostic artifact
+    action: receive
+    channel:
+      $ref: '#/channels/diagArtifact'
+    traits:
+      - $ref: '#/components/operationTraits/mqtt'
+    messages:
+      - $ref: '#/channels/diagArtifact/messages/diagArtifact'
+components:
+  messages:
+    diagMainDiag:
+      name: diagMainDiag
+      payload:
+        $ref: '#/components/schemas/diagMainDiagPayload'
+    diagMainDiagReply:
+      name: diagMainDiagReply
+      payload:
+        $ref: '#/components/schemas/diagMainDiagReplyPayload'
+    diagMainStatus:
+      name: diagMainStatus
+      payload:
+        $ref: '#/components/schemas/diagMainStatusPayload'
+    diagMainStatusReply:
+      name: diagMainStatusReply
+      payload:
+        $ref: '#/components/schemas/diagMainStatusReplyPayload'
+    diagArtifact:
+      name: diagArtifact
+      payload:
+        $ref: '#/components/schemas/diagArtifactPayload'
+  schemas:
+    diagMainDiagPayload:
+      type: object
+      properties:
+        id:
+          type: number
+        params:
+          type: object
+      required:
+        - id
+        - params
+    diagMainDiagReplyPayload:
+      type: object
+      properties:
+        id:
+          type: number
+        result:
+          type: string
+          const: "Ok"
+      required:
+        - id
+        - result
+    diagMainStatusPayload:
+      type: object
+      properties:
+        id:
+          type: number
+        params:
+          type: object
+      required:
+        - id
+        - params
+    diagMainStatusReplyPayload:
+      type: object
+      properties:
+        id:
+          type: number
+        result:
+          type: string
+          const: "1"
+      required:
+        - id
+        - result
+    diagArtifactPayload:
+      type: object
+      properties:
+        basename:
+          description: Archive file name
+          type: string
+        fullname:
+          description: Full path to the archive file (/var/www/diag/...)
+          type: string
+      required:
+        - basename
+        - fullname
+  parameters:
+    clientId:
+      description: UUID
+  operationTraits:
+    mqtt:
+      bindings:
+        mqtt:
+          qos: 1
