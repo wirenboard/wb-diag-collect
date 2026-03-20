@@ -1,3 +1,9 @@
+wb-diag-collect (1.9.6) stable; urgency=medium
+
+  * Add network-test
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Wed, 18 Mar 2026 17:19:00 +0400
+
 wb-diag-collect (1.9.5) stable; urgency=medium
 
   * Add /var/lib/wb-mqtt-adc/conf.d/system.conf and /var/lib/wb-mqtt-gpio/conf.d/system.conf to files
