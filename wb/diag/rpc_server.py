@@ -120,7 +120,7 @@ class AsyncMQTTRPCServer:
             path = await wb_archive_collector.collect(self.options, "/var/www/diag/", "diag_output")
             elapsed = time.monotonic() - started_at
 
-            self.logger.info(f"Data was collected successfully in {elapsed:.2f}s")
+            self.logger.info("Data was collected successfully in %.2fs", elapsed)
 
             self.publish_result(payload={"basename": os.path.basename(path), "fullname": path})
         except OSError as e:
