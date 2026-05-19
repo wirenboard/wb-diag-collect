@@ -1,9 +1,10 @@
+import asyncio
 import logging
 import shutil
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import yaml
@@ -77,9 +78,17 @@ async def test_execute_commands_mixed_timeout():
 async def test_apply_file_wildcard_timeout():
     collector = Collector(logger)
 
-    result = await collector.apply_file_wildcard("/etc/nonexistent/**", timeout=0.1)
+    fake_proc = Mock()
+    fake_proc.wait = AsyncMock()
+    fake_proc.kill = Mock()
+
+    with patch("wb.diag.collector.asyncio.create_subprocess_shell", new=AsyncMock(return_value=fake_proc)):
+        with patch("wb.diag.collector.asyncio.wait_for", new=AsyncMock(side_effect=asyncio.TimeoutError)):
+            result = await collector.apply_file_wildcard("/etc/nonexistent/**", timeout=0.1)
 
     assert result == []
+    fake_proc.kill.assert_called_once_with()
+    fake_proc.wait.assert_awaited_once_with()
 
 
 @pytest.mark.asyncio
