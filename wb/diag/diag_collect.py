@@ -21,7 +21,7 @@ class ResultCode(IntEnum):
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def main(argv=sys.argv):
