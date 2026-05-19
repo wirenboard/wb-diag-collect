@@ -1,3 +1,9 @@
+wb-diag-collect (1.9.7) stable; urgency=medium
+
+  * Improve logging
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 19 May 2026 17:19:00 +0400
+
 wb-diag-collect (1.9.6) stable; urgency=medium
 
   * Add network-test

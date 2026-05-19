@@ -2,9 +2,11 @@ import argparse
 import asyncio
 import logging
 import sys
+import time
 from enum import IntEnum
 
 import yaml
+from systemd.journal import JournalHandler
 from yaml.loader import SafeLoader
 
 from wb.diag import collector, rpc_server
@@ -39,13 +41,16 @@ def main(argv=sys.argv):
     args = parser.parse_args(argv[1:])
     conf_path = args.config
 
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-    console_loglevel = logging.INFO
-    if args.debug:
-        console_loglevel = logging.DEBUG
-    console_handler.setLevel(console_loglevel)
-    logger.addHandler(console_handler)
+    if args.server:
+        handler = JournalHandler()
+        handler.setFormatter(logging.Formatter("%(message)s"))
+    else:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+
+    log_level = logging.DEBUG if args.debug else logging.INFO
+    handler.setLevel(log_level)
+    logger.addHandler(handler)
 
     try:
         with open(conf_path or DEFAULT_CONF_PATH, encoding="utf-8") as f:
@@ -68,11 +73,13 @@ def main(argv=sys.argv):
             print("Start data collecting")
 
             wb_archive_collector = collector.Collector(logger)
+            started_at = time.monotonic()
             asyncio.get_event_loop().run_until_complete(
                 wb_archive_collector.collect(options, "", args.output_filename[0])
             )
+            elapsed = time.monotonic() - started_at
 
-            print("Data was collected successfully")
+            print(f"Data was collected successfully in {elapsed:.2f}s")
 
         return ResultCode.OK
     except OSError as e:

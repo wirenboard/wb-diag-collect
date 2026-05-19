@@ -83,7 +83,7 @@ class Collector:
                 file_paths.append(path)
 
             return file_paths
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.warning("Timeout was expired for wildcard %s", wildcard)
             return []
 
@@ -114,14 +114,18 @@ class Collector:
             os.makedirs(f"{directory}/{os.path.dirname(file_name)}", exist_ok=True)
 
             with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
+                proc = None
                 try:
                     proc = await asyncio.create_subprocess_shell(
                         cmd=command, shell=True, env=env, stdout=file, stderr=asyncio.subprocess.STDOUT
                     )  # nosec B602
                     await asyncio.wait_for(proc.wait(), timeout=timeout)
-                except TimeoutError:
+                except asyncio.TimeoutError:
+                    if proc is not None:
+                        proc.kill()
+                        await proc.wait()
                     self.logger.warning(
-                        "Command %s didn't finish in %ds",
+                        "Command `%s` exceeded timeout of %ds and was terminated",
                         command,
                         timeout,
                         exc_info=(self.logger.level <= logging.DEBUG),
@@ -165,9 +169,11 @@ class Collector:
                         stderr=asyncio.subprocess.STDOUT,  # nosec B602
                     )
                     await asyncio.wait_for(proc.wait(), timeout=timeout)
-                except TimeoutError:
+                except asyncio.TimeoutError:
+                    proc.kill()
+                    await proc.wait()
                     self.logger.warning(
-                        "Journalctl reading %s didn't finish in %ds",
+                        "Journalctl reading %s exceeded timeout of %ds and was terminated",
                         command,
                         timeout,
                         exc_info=(self.logger.level <= logging.DEBUG),
