@@ -42,7 +42,7 @@ def main(argv=sys.argv):
     conf_path = args.config
 
     if args.server:
-        handler = JournalHandler()
+        handler = JournalHandler(SYSLOG_IDENTIFIER="wb-diag-collect")
         handler.setFormatter(logging.Formatter("%(message)s"))
     else:
         handler = logging.StreamHandler()
