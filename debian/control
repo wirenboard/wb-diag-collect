@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 10),
                python3-setuptools,
                python3-systemd,
                python3-pytest,
+               python3-pytest-asyncio,
                python3-tomli,
                python3-yaml
 Standards-Version: 4.5.0
