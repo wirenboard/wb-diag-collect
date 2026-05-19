@@ -85,7 +85,7 @@ async def test_apply_file_wildcard_timeout():
 
     wait_for_calls = 0
 
-    async def wait_for_side_effect(awaitable):
+    async def wait_for_side_effect(awaitable, _timeout):
         nonlocal wait_for_calls
         wait_for_calls += 1
         if wait_for_calls == 1:
