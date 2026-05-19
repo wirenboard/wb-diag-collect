@@ -69,8 +69,8 @@ async def test_execute_commands_mixed_timeout():
         assert Path(f"{tmpdir}/cmd1.log").exists()
         assert Path(f"{tmpdir}/cmd_slow.log").exists()
         assert Path(f"{tmpdir}/cmd3.log").exists()
-        assert Path(f"{tmpdir}/cmd1.log").read_text().strip() == "fast command"
-        assert Path(f"{tmpdir}/cmd3.log").read_text().strip() == "another fast"
+        assert Path(f"{tmpdir}/cmd1.log").read_text(encoding="utf-8").strip() == "fast command"
+        assert Path(f"{tmpdir}/cmd3.log").read_text(encoding="utf-8").strip() == "another fast"
 
 
 @pytest.mark.asyncio
@@ -83,7 +83,7 @@ async def test_apply_file_wildcard_timeout():
 
 
 @pytest.mark.asyncio
-async def test_collect_with_command_timeout(diag_collect_config):
+async def test_collect_with_command_timeout():
     collector = Collector(logger)
 
     with TemporaryDirectory() as tmpdir:
@@ -98,10 +98,10 @@ async def test_collect_with_command_timeout(diag_collect_config):
 
         real_open = open
 
-        def open_side_effect(path, mode="r", encoding=None, *args, **kwargs):
+        def open_side_effect(path, mode="r", **kwargs):
             if path == "/var/lib/wirenboard/short_sn.conf" and "r" in mode:
                 return StringIO("TEST_SN\n")
-            return real_open(path, mode, encoding=encoding, *args, **kwargs)
+            return real_open(path, mode, **kwargs)
 
         with patch("wb.diag.collector.open", side_effect=open_side_effect):
             result = await collector.collect(options, tmpdir, "test_archive")
