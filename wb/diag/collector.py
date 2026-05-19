@@ -108,7 +108,7 @@ class Collector:
         except asyncio.TimeoutError:
             if proc is not None:
                 await self.terminate_process_group(proc)
-            self.logger.warning("Timeout was expired for wildcard %s", wildcard)
+            self.logger.warning("Timeout expired while processing wildcard %s", wildcard)
             return []
 
     async def copy_files(self, directory, wildcards):
