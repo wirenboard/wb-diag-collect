@@ -124,7 +124,7 @@ class AsyncMQTTRPCServer:
 
             self.publish_result(payload={"basename": os.path.basename(path), "fullname": path})
         except OSError as e:
-            self.logger.error("OSError: with file %s, errno %d", e.filename, e.errno)
+            self.logger.error("OSError: with file %s, errno %s", e.filename, e.errno, exc_info=True)
             self.publish_result(payload=None)
 
     def run(self):
