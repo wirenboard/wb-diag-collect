@@ -46,12 +46,7 @@ async def test_execute_commands_timeout():
     collector = Collector(logger)
 
     with TemporaryDirectory() as tmpdir:
-        options = {
-            "commands": [
-                {"filename": "slow_cmd", "command": "sleep 5"}
-            ],
-            "timeout": 1
-        }
+        options = {"commands": [{"filename": "slow_cmd", "command": "sleep 5"}], "timeout": 1}
         await collector.execute_commands(tmpdir, options["commands"], options["timeout"])
         assert Path(f"{tmpdir}/slow_cmd.log").exists()
 
@@ -65,9 +60,9 @@ async def test_execute_commands_mixed_timeout():
             "commands": [
                 {"filename": "cmd1", "command": "echo 'fast command'"},
                 {"filename": "cmd_slow", "command": "sleep 5"},
-                {"filename": "cmd3", "command": "echo 'another fast'"}
+                {"filename": "cmd3", "command": "echo 'another fast'"},
             ],
-            "timeout": 1
+            "timeout": 1,
         }
         await collector.execute_commands(tmpdir, options["commands"], options["timeout"])
 
@@ -93,14 +88,12 @@ async def test_collect_with_command_timeout(diag_collect_config):
 
     with TemporaryDirectory() as tmpdir:
         options = {
-            "commands": [
-                {"filename": "ps_aux", "command": "sleep 2"}
-            ],
+            "commands": [{"filename": "ps_aux", "command": "sleep 2"}],
             "files": [],
             "filters": [],
             "service_names": [],
             "service_lines_number": 0,
-            "timeout": 1
+            "timeout": 1,
         }
 
         real_open = open
