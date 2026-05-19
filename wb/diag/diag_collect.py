@@ -49,6 +49,7 @@ def main(argv=sys.argv):
         handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 
     log_level = logging.DEBUG if args.debug else logging.INFO
+    logger.setLevel(log_level)
     handler.setLevel(log_level)
     logger.addHandler(handler)
 

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import shutil
+import signal
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -79,15 +80,25 @@ async def test_apply_file_wildcard_timeout():
     collector = Collector(logger)
 
     fake_proc = Mock()
+    fake_proc.pid = 12345
     fake_proc.wait = AsyncMock()
-    fake_proc.kill = Mock()
+
+    wait_for_calls = 0
+
+    async def wait_for_side_effect(awaitable, timeout):
+        nonlocal wait_for_calls
+        wait_for_calls += 1
+        if wait_for_calls == 1:
+            raise asyncio.TimeoutError
+        return await awaitable
 
     with patch("wb.diag.collector.asyncio.create_subprocess_shell", new=AsyncMock(return_value=fake_proc)):
-        with patch("wb.diag.collector.asyncio.wait_for", new=AsyncMock(side_effect=asyncio.TimeoutError)):
-            result = await collector.apply_file_wildcard("/etc/nonexistent/**", timeout=0.1)
+        with patch("wb.diag.collector.asyncio.wait_for", new=wait_for_side_effect):
+            with patch("wb.diag.collector.os.killpg") as killpg_mock:
+                result = await collector.apply_file_wildcard("/etc/nonexistent/**", timeout=0.1)
 
     assert result == []
-    fake_proc.kill.assert_called_once_with()
+    killpg_mock.assert_called_once_with(12345, signal.SIGTERM)
     fake_proc.wait.assert_awaited_once_with()
 
 
