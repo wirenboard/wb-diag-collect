@@ -63,6 +63,7 @@ class Collector:
 
     async def apply_file_wildcard(self, wildcard: str, timeout):
         cmd = f"find {wildcard} -type f,l"
+        proc = None
         try:
             proc = await asyncio.create_subprocess_shell(
                 cmd=cmd,
@@ -84,6 +85,9 @@ class Collector:
 
             return file_paths
         except asyncio.TimeoutError:
+            if proc is not None:
+                proc.kill()
+                await proc.wait()
             self.logger.warning("Timeout was expired for wildcard %s", wildcard)
             return []
 
