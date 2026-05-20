@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+import signal
 from fnmatch import fnmatch
 from io import StringIO
 from tempfile import TemporaryDirectory
@@ -61,12 +62,33 @@ class Collector:
                 root_dir=tmpdir,
             )
 
+    @staticmethod
+    async def terminate_process_group(proc):
+        if proc is None:
+            return
+
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=1)
+        except asyncio.TimeoutError:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            await proc.wait()
+
     async def apply_file_wildcard(self, wildcard: str, timeout):
         cmd = f"find {wildcard} -type f,l"
+        proc = None
         try:
             proc = await asyncio.create_subprocess_shell(
                 cmd=cmd,
                 shell=True,
+                start_new_session=True,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
@@ -83,8 +105,10 @@ class Collector:
                 file_paths.append(path)
 
             return file_paths
-        except TimeoutError:
-            self.logger.warning("Timeout was expired for wildcard %s", wildcard)
+        except asyncio.TimeoutError:
+            if proc is not None:
+                await self.terminate_process_group(proc)
+            self.logger.warning("Timeout expired while processing wildcard %s", wildcard)
             return []
 
     async def copy_files(self, directory, wildcards):
@@ -114,14 +138,22 @@ class Collector:
             os.makedirs(f"{directory}/{os.path.dirname(file_name)}", exist_ok=True)
 
             with open(f"{directory}/{file_name}.log", "w", encoding="utf-8") as file:
+                proc = None
                 try:
                     proc = await asyncio.create_subprocess_shell(
-                        cmd=command, shell=True, env=env, stdout=file, stderr=asyncio.subprocess.STDOUT
+                        cmd=command,
+                        shell=True,
+                        start_new_session=True,
+                        env=env,
+                        stdout=file,
+                        stderr=asyncio.subprocess.STDOUT,
                     )  # nosec B602
                     await asyncio.wait_for(proc.wait(), timeout=timeout)
-                except TimeoutError:
+                except asyncio.TimeoutError:
+                    if proc is not None:
+                        await self.terminate_process_group(proc)
                     self.logger.warning(
-                        "Command %s didn't finish in %ds",
+                        "Command `%s` exceeded timeout of %ds and was terminated",
                         command,
                         timeout,
                         exc_info=(self.logger.level <= logging.DEBUG),
@@ -161,13 +193,15 @@ class Collector:
                         command,
                         env=env,
                         shell=True,
+                        start_new_session=True,
                         stdout=file,
                         stderr=asyncio.subprocess.STDOUT,  # nosec B602
                     )
                     await asyncio.wait_for(proc.wait(), timeout=timeout)
-                except TimeoutError:
+                except asyncio.TimeoutError:
+                    await self.terminate_process_group(proc)
                     self.logger.warning(
-                        "Journalctl reading %s didn't finish in %ds",
+                        "Journalctl reading %s exceeded timeout of %ds and was terminated",
                         command,
                         timeout,
                         exc_info=(self.logger.level <= logging.DEBUG),

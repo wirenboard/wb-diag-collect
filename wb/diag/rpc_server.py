@@ -1,10 +1,11 @@
 import asyncio
 import atexit
+import glob
 import json
 import os
 import signal
-import subprocess
 import sys
+import time
 from contextlib import contextmanager
 
 from mqttrpc import dispatcher
@@ -106,21 +107,24 @@ class AsyncMQTTRPCServer:
     async def diag(self):
         try:
             self.logger.debug("Method 'diag' was called")
-            try:
-                subprocess.run("rm /var/www/diag/*.zip", check=False, shell=True)
-            except OSError:
-                self.logger.warning('Error deleting a directory "/var/www/diag/*.zip"')
+            for f in glob.glob("/var/www/diag/*.zip"):
+                try:
+                    os.remove(f)
+                except OSError:
+                    self.logger.warning("Error deleting file %s", f)
 
-            print("Start data collecting")
+            self.logger.info("Start data collecting")
 
             wb_archive_collector = collector.Collector(self.logger)
+            started_at = time.monotonic()
             path = await wb_archive_collector.collect(self.options, "/var/www/diag/", "diag_output")
+            elapsed = time.monotonic() - started_at
 
-            print("Data was collected successfully")
+            self.logger.info("Data was collected successfully in %.2fs", elapsed)
 
             self.publish_result(payload={"basename": os.path.basename(path), "fullname": path})
         except OSError as e:
-            print("OSError: with file %s, errno %d", e.filename, e.errno)
+            self.logger.error("OSError: with file %s, errno %s", e.filename, e.errno, exc_info=True)
             self.publish_result(payload=None)
 
     def run(self):
