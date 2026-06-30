@@ -1,3 +1,9 @@
+wb-diag-collect (1.10.1) stable; urgency=medium
+
+  * Add /etc/wb-mqtt-snmp.conf
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 30 Jun 2026 13:19:00 +0400
+
 wb-diag-collect (1.10.0) stable; urgency=medium
 
   * Port for Debian 13
