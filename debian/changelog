@@ -1,3 +1,10 @@
+wb-diag-collect (1.10.2) stable; urgency=medium
+
+  * Collect pstore/ramoops panic logs and post-crash recovery markers, from the
+    archived records (/sys/fs/pstore, /var/lib/systemd/pstore) and the journal
+
+ -- Evgeny Boger <boger@wirenboard.com>  Thu, 09 Jul 2026 14:55:24 +0300
+
 wb-diag-collect (1.10.1) stable; urgency=medium
 
   * Add /etc/wb-mqtt-snmp.conf
