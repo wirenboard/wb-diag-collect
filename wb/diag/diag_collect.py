@@ -18,6 +18,8 @@ class ResultCode(IntEnum):
     OK = 0
     OPERATION_ERROR = 1
     USER_INPUT_ERROR = 2
+    NOT_CONFIGURED = 6
+    NOT_RUNNING = 7
 
 
 logger = logging.getLogger(__name__)
@@ -57,34 +59,48 @@ def main(argv=sys.argv):
         with open(conf_path or DEFAULT_CONF_PATH, encoding="utf-8") as f:
             yaml_data = yaml.load(f, Loader=SafeLoader)
 
-            options = {}
-            options["commands"] = yaml_data["commands"] or []
-            options["files"] = yaml_data["files"] or []
-            options["filters"] = yaml_data["filters"] or []
-            options["service_lines_number"] = yaml_data["journald_logs"]["lines_number"] or 0
-            options["service_names"] = yaml_data["journald_logs"]["names"]
-            options["timeout"] = args.timeout or yaml_data["timeout"]
-
-            if args.server:
-                options["broker"] = yaml_data["mqtt"]["broker"]
-
+        options = {
+            "commands": yaml_data["commands"] or [],
+            "files": yaml_data["files"] or [],
+            "filters": yaml_data["filters"] or [],
+            "service_lines_number": yaml_data["journald_logs"]["lines_number"] or 0,
+            "service_names": yaml_data["journald_logs"]["names"],
+            "timeout": args.timeout or yaml_data["timeout"],
+        }
         if args.server:
-            rpc_server.serve(options, logger)
-        else:
-            print("Start data collecting")
+            options["broker"] = yaml_data["mqtt"]["broker"]
 
-            wb_archive_collector = collector.Collector(logger)
-            started_at = time.monotonic()
-            asyncio.get_event_loop().run_until_complete(
-                wb_archive_collector.collect(options, "", args.output_filename[0])
-            )
-            elapsed = time.monotonic() - started_at
+        if not all(isinstance(options[key], list) for key in ("commands", "files", "filters")):
+            raise TypeError("commands, files and filters must be lists")
+        if not isinstance(options["service_names"], list):
+            raise TypeError("journald_logs.names must be a list")
+        if not isinstance(options["service_lines_number"], int) or options["service_lines_number"] < 0:
+            raise TypeError("journald_logs.lines_number must be a non-negative integer")
+        if not isinstance(options["timeout"], int) or options["timeout"] <= 0:
+            raise TypeError("timeout must be a positive integer")
+        if args.server and (not isinstance(options["broker"], str) or not options["broker"]):
+            raise TypeError("mqtt.broker must be a non-empty string")
+    except (OSError, KeyError, TypeError, yaml.YAMLError) as error:
+        logger.error("Cannot read config %s: %s", conf_path or DEFAULT_CONF_PATH, error)
+        return ResultCode.NOT_CONFIGURED
 
-            print(f"Data was collected successfully in {elapsed:.2f}s")
+    if args.server:
+        return rpc_server.serve(options, logger)
 
+    try:
+        print("Start data collecting")
+
+        wb_archive_collector = collector.Collector(logger)
+        started_at = time.monotonic()
+        asyncio.get_event_loop().run_until_complete(
+            wb_archive_collector.collect(options, "", args.output_filename[0])
+        )
+        elapsed = time.monotonic() - started_at
+
+        print(f"Data was collected successfully in {elapsed:.2f}s")
         return ResultCode.OK
-    except OSError as e:
-        print("OSError: with file %s, errno %d", e.filename, e.errno)
+    except OSError as error:
+        logger.error("OSError: with file %s, errno %s", error.filename, error.errno)
         return ResultCode.OPERATION_ERROR
 
 

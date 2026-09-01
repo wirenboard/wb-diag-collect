@@ -1,3 +1,9 @@
+wb-diag-collect (1.10.3) stable; urgency=medium
+
+  * Align MQTT and systemd lifecycle with the controller service requirements
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Tue, 01 Sep 2026 14:10:00 +0000
+
 wb-diag-collect (1.10.2) stable; urgency=medium
 
   * Increase wb-release log lines count to 5000
