@@ -1,4 +1,3 @@
 wb-diag-collect /usr/bin
 wb-diag-collect.conf /usr/share/wb-diag-collect
-wb-diag-collect.schema.json /usr/share/wb-mqtt-confed/schemas
 .htaccess /var/www/diag

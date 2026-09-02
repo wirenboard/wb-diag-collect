@@ -15,7 +15,6 @@ Service (`systemctl status wb-diag-collect.service`):
  - [ ] starts in service mode without command-line arguments
  - [ ] keeps retrying after a non-authentication CONNACK failure
  - [ ] exits with code 2 after an authentication CONNACK failure
- - [ ] rejects JSON configuration which does not conform to the installed schema with code 6
 
 wb-diag-collect specific
 ------------------------

@@ -5,14 +5,14 @@ Maintainer: Wiren Board Team <info@wirenboard.com>
 Build-Depends: debhelper-compat (= 13),
                dh-python,
                python3-all,
-               python3-jsonschema,
                python3-mqttrpc,
                python3-setuptools,
                python3-systemd,
                python3-pytest,
                python3-pytest-asyncio,
                python3-tomli,
-               python3-wb-common (>= 2.1.0)
+               python3-wb-common (>= 2.1.0),
+               python3-yaml
 Standards-Version: 4.5.0
 Homepage: https://github.com/wirenboard/wb-diag-collect
 X-Python3-Version: >= 3.9
@@ -25,7 +25,7 @@ Replaces: python3-wb-diag-collect (<< 1.7.0)
 Provides: python3-wb-diag-collect
 Depends: ${misc:Depends},
          ${python3:Depends},
-         python3-jsonschema,
+         python3-yaml,
          python3-mqttrpc,
          python3-systemd,
          python3-wb-common (>= 2.4.0~~),

@@ -1,19 +1,18 @@
 import argparse
 import asyncio
-import json
 import logging
 import sys
 import time
 from enum import IntEnum
 from urllib.parse import urlparse
 
-import jsonschema
+import yaml
 from systemd.journal import JournalHandler
+from yaml.loader import SafeLoader
 
 from wb.diag import collector, rpc_server
 
 DEFAULT_CONF_PATH = "/usr/share/wb-diag-collect/wb-diag-collect.conf"
-SCHEMA_PATH = "/usr/share/wb-mqtt-confed/schemas/wb-diag-collect.schema.json"
 
 
 class ResultCode(IntEnum):
@@ -44,27 +43,6 @@ def validate_broker_url(broker_url: str) -> None:
         raise TypeError("mqtt.broker TCP URL must contain a host and port")
 
 
-def load_options(config_path, timeout, server_mode):
-    with open(config_path, encoding="utf-8") as config_file:
-        config = json.load(config_file)
-    with open(SCHEMA_PATH, encoding="utf-8") as schema_file:
-        schema = json.load(schema_file)
-    jsonschema.validate(config, schema)
-
-    options = {
-        "commands": config["commands"],
-        "files": config["files"],
-        "filters": config["filters"],
-        "service_lines_number": config["journald_logs"]["lines_number"],
-        "service_names": config["journald_logs"]["names"],
-        "timeout": timeout or config["timeout"],
-    }
-    if server_mode:
-        options["broker"] = config["mqtt"]["broker"]
-        validate_broker_url(options["broker"])
-    return options
-
-
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(
         description="one-click diagnostic data collector for Wiren Board, generating archive with data"
@@ -80,7 +58,7 @@ def main(argv=sys.argv):
     )
 
     args = parser.parse_args(argv[1:])
-    conf_path = args.config or DEFAULT_CONF_PATH
+    conf_path = args.config
     server_mode = args.server or args.output_filename is None
 
     if server_mode:
@@ -96,15 +74,34 @@ def main(argv=sys.argv):
     logger.addHandler(handler)
 
     try:
-        options = load_options(conf_path, args.timeout, server_mode)
-    except (
-        OSError,
-        TypeError,
-        json.JSONDecodeError,
-        jsonschema.SchemaError,
-        jsonschema.ValidationError,
-    ) as error:
-        logger.error("Cannot read config %s: %s", conf_path, error)
+        with open(conf_path or DEFAULT_CONF_PATH, encoding="utf-8") as f:
+            yaml_data = yaml.load(f, Loader=SafeLoader)
+
+        options = {
+            "commands": yaml_data["commands"] or [],
+            "files": yaml_data["files"] or [],
+            "filters": yaml_data["filters"] or [],
+            "service_lines_number": yaml_data["journald_logs"]["lines_number"] or 0,
+            "service_names": yaml_data["journald_logs"]["names"],
+            "timeout": args.timeout or yaml_data["timeout"],
+        }
+        if server_mode:
+            options["broker"] = yaml_data["mqtt"]["broker"]
+
+        if not all(isinstance(options[key], list) for key in ("commands", "files", "filters")):
+            raise TypeError("commands, files and filters must be lists")
+        if not isinstance(options["service_names"], list):
+            raise TypeError("journald_logs.names must be a list")
+        if not isinstance(options["service_lines_number"], int) or options["service_lines_number"] < 0:
+            raise TypeError("journald_logs.lines_number must be a non-negative integer")
+        if not isinstance(options["timeout"], int) or options["timeout"] <= 0:
+            raise TypeError("timeout must be a positive integer")
+        if server_mode and (not isinstance(options["broker"], str) or not options["broker"]):
+            raise TypeError("mqtt.broker must be a non-empty string")
+        if server_mode:
+            validate_broker_url(options["broker"])
+    except (OSError, KeyError, TypeError, yaml.YAMLError) as error:
+        logger.error("Cannot read config %s: %s", conf_path or DEFAULT_CONF_PATH, error)
         return ResultCode.NOT_CONFIGURED
 
     if server_mode:
