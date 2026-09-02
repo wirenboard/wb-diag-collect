@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
 from wb.diag.collector import Collector
 
 logger = logging.getLogger(__name__)
