@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 from enum import IntEnum
+from urllib.parse import urlparse
 
 import yaml
 from systemd.journal import JournalHandler
@@ -26,6 +27,22 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def validate_broker_url(broker_url: str) -> None:
+    parsed_url = urlparse(broker_url)
+    if parsed_url.scheme == "unix":
+        if not parsed_url.path:
+            raise TypeError("mqtt.broker unix URL must contain a socket path")
+        return
+    if parsed_url.scheme not in ("mqtt-tcp", "tcp", "ws"):
+        raise TypeError(f"mqtt.broker has unsupported URL scheme: {parsed_url.scheme}")
+    try:
+        port = parsed_url.port
+    except ValueError as error:
+        raise TypeError(f"mqtt.broker has invalid port: {error}") from error
+    if not parsed_url.hostname or port is None:
+        raise TypeError("mqtt.broker TCP URL must contain a host and port")
+
+
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(
         description="one-click diagnostic data collector for Wiren Board, generating archive with data"
@@ -37,13 +54,14 @@ def main(argv=sys.argv):
         "-t", "--timeout", action="store", type=int, help="set timeout for commands execution"
     )
     parser.add_argument(
-        "output_filename", metavar="output_filename", type=str, nargs=1, help="output filename"
+        "output_filename", metavar="output_filename", type=str, nargs="?", help="output filename"
     )
 
     args = parser.parse_args(argv[1:])
     conf_path = args.config
+    server_mode = args.server or args.output_filename is None
 
-    if args.server:
+    if server_mode:
         handler = JournalHandler(SYSLOG_IDENTIFIER="wb-diag-collect")
         handler.setFormatter(logging.Formatter("%(message)s"))
     else:
@@ -67,7 +85,7 @@ def main(argv=sys.argv):
             "service_names": yaml_data["journald_logs"]["names"],
             "timeout": args.timeout or yaml_data["timeout"],
         }
-        if args.server:
+        if server_mode:
             options["broker"] = yaml_data["mqtt"]["broker"]
 
         if not all(isinstance(options[key], list) for key in ("commands", "files", "filters")):
@@ -78,13 +96,15 @@ def main(argv=sys.argv):
             raise TypeError("journald_logs.lines_number must be a non-negative integer")
         if not isinstance(options["timeout"], int) or options["timeout"] <= 0:
             raise TypeError("timeout must be a positive integer")
-        if args.server and (not isinstance(options["broker"], str) or not options["broker"]):
+        if server_mode and (not isinstance(options["broker"], str) or not options["broker"]):
             raise TypeError("mqtt.broker must be a non-empty string")
+        if server_mode:
+            validate_broker_url(options["broker"])
     except (OSError, KeyError, TypeError, yaml.YAMLError) as error:
         logger.error("Cannot read config %s: %s", conf_path or DEFAULT_CONF_PATH, error)
         return ResultCode.NOT_CONFIGURED
 
-    if args.server:
+    if server_mode:
         return rpc_server.serve(options, logger)
 
     try:
@@ -93,7 +113,7 @@ def main(argv=sys.argv):
         wb_archive_collector = collector.Collector(logger)
         started_at = time.monotonic()
         asyncio.get_event_loop().run_until_complete(
-            wb_archive_collector.collect(options, "", args.output_filename[0])
+            wb_archive_collector.collect(options, "", args.output_filename)
         )
         elapsed = time.monotonic() - started_at
 

@@ -44,7 +44,6 @@ class AsyncMQTTRPCServer:
         broker = options["broker"]
         self.client = MQTTClient("wb-diag-collect", broker)
         logger.debug("Connecting to broker %s", broker)
-        self._setup_mqtt_connection()
 
         self.wb_archive_collector = collector.Collector(logger)
 
@@ -69,10 +68,13 @@ class AsyncMQTTRPCServer:
         self._mqtt_started = True
 
     def _on_connect(self, _client, _userdata, _flags, rc, *_):
-        if rc != 0:
-            self.logger.error("MQTT broker connection failed, code %d", rc)
-            self.exit_code = EXIT_INVALIDARGUMENT if rc in (4, 5) else EXIT_FAILURE
+        if rc in (4, 5):
+            self.logger.error("MQTT broker authentication failed, code %d", rc)
+            self.exit_code = EXIT_INVALIDARGUMENT
             self.asyncio_loop.call_soon_threadsafe(self.asyncio_loop.stop)
+            return
+        if rc != 0:
+            self.logger.warning("MQTT broker connection failed, code %d, retrying", rc)
             return
 
         self.logger.debug("Settings up RPC endpoints")

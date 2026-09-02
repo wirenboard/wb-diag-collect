@@ -16,6 +16,54 @@ def test_malformed_config_returns_6(tmp_path):
     assert result == diag_collect.ResultCode.NOT_CONFIGURED
 
 
+def test_invalid_broker_url_returns_6(tmp_path):
+    config = tmp_path / "wb-diag-collect.conf"
+    config.write_text(
+        """
+commands: []
+files: []
+filters: []
+journald_logs:
+  lines_number: 0
+  names: []
+mqtt:
+  broker: invalid://broker
+timeout: 1
+""",
+        encoding="utf-8",
+    )
+
+    result = diag_collect.main(["wb-diag-collect", "-s", "-c", str(config), "archive"])
+
+    assert result == diag_collect.ResultCode.NOT_CONFIGURED
+
+
+def test_no_arguments_starts_server_with_default_config(tmp_path):
+    config = tmp_path / "wb-diag-collect.conf"
+    config.write_text(
+        """
+commands: []
+files: []
+filters: []
+journald_logs:
+  lines_number: 0
+  names: []
+mqtt:
+  broker: unix:///run/mosquitto.sock
+timeout: 1
+""",
+        encoding="utf-8",
+    )
+
+    with patch.object(diag_collect, "DEFAULT_CONF_PATH", str(config)), patch.object(
+        diag_collect.rpc_server, "serve", return_value=diag_collect.ResultCode.NOT_RUNNING
+    ) as serve:
+        result = diag_collect.main(["wb-diag-collect"])
+
+    assert result == diag_collect.ResultCode.NOT_RUNNING
+    assert serve.call_args.args[0]["broker"] == "unix:///run/mosquitto.sock"
+
+
 def test_serve_returns_7_and_stops():
     with patch.object(rpc_server, "AsyncMQTTRPCServer") as server_class:
         server = server_class.return_value
@@ -37,7 +85,7 @@ def test_authentication_error_stops_loop_threadsafe():
     server.asyncio_loop.call_soon_threadsafe.assert_called_once_with(server.asyncio_loop.stop)
 
 
-def test_other_connection_error_uses_failure_code():
+def test_other_connection_error_keeps_service_running():
     server = rpc_server.AsyncMQTTRPCServer.__new__(rpc_server.AsyncMQTTRPCServer)
     server.logger = MagicMock()
     server.asyncio_loop = MagicMock()
@@ -45,7 +93,25 @@ def test_other_connection_error_uses_failure_code():
 
     server._on_connect(None, None, None, 3)  # pylint:disable=protected-access
 
-    assert server.exit_code == rpc_server.EXIT_FAILURE
+    assert server.exit_code == rpc_server.EXIT_NOTRUNNING
+    server.asyncio_loop.call_soon_threadsafe.assert_not_called()
+
+
+def test_mqtt_client_is_started_once_when_server_runs():
+    options = {"broker": "unix:///run/mosquitto.sock"}
+    event_loop = MagicMock()
+
+    with patch.object(rpc_server.AsyncMQTTRPCServer, "_setup_event_loop"), patch.object(
+        rpc_server, "MQTTClient"
+    ) as client_class, patch.object(rpc_server.collector, "Collector"):
+        server = rpc_server.AsyncMQTTRPCServer(options, MagicMock(), logging.getLogger())
+        server.asyncio_loop = event_loop
+
+        client_class.return_value.start.assert_not_called()
+        assert server.run() == rpc_server.EXIT_NOTRUNNING
+
+    client_class.return_value.start.assert_called_once_with()
+    event_loop.run_forever.assert_called_once_with()
 
 
 def test_wait_for_publish_reports_timeout():

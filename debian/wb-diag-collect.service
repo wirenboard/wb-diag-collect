@@ -9,7 +9,7 @@ RestartSec=1
 RestartPreventExitStatus=2 6
 SuccessExitStatus=7
 User=root
-ExecStart=/usr/bin/wb-diag-collect -s diag_archive
+ExecStart=/usr/bin/wb-diag-collect
 
 [Install]
 WantedBy=multi-user.target

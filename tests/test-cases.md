@@ -12,6 +12,9 @@ Service (`systemctl status wb-diag-collect.service`):
  - [ ] publishes its RPC endpoints on start
  - [ ] publishes its RPC endpoints after Mosquitto restart
  - [ ] removes its RPC endpoints on stop
+ - [ ] starts in service mode without command-line arguments
+ - [ ] keeps retrying after a non-authentication CONNACK failure
+ - [ ] exits with code 2 after an authentication CONNACK failure
 
 wb-diag-collect specific
 ------------------------
