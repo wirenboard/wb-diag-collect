@@ -21,10 +21,15 @@ def make_config(broker="unix:///run/mosquitto.sock"):
 
 @pytest.fixture(autouse=True)
 def use_source_schema(monkeypatch):
+    schema_path = next(
+        parent / "wb-diag-collect.schema.json"
+        for parent in Path(__file__).resolve().parents
+        if (parent / "wb-diag-collect.schema.json").is_file()
+    )
     monkeypatch.setattr(
         diag_collect,
         "SCHEMA_PATH",
-        str(Path(__file__).parent.parent / "wb-diag-collect.schema.json"),
+        str(schema_path),
     )
 
 
