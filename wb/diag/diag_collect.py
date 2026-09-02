@@ -44,6 +44,27 @@ def validate_broker_url(broker_url: str) -> None:
         raise TypeError("mqtt.broker TCP URL must contain a host and port")
 
 
+def load_options(config_path, timeout, server_mode):
+    with open(config_path, encoding="utf-8") as config_file:
+        config = json.load(config_file)
+    with open(SCHEMA_PATH, encoding="utf-8") as schema_file:
+        schema = json.load(schema_file)
+    jsonschema.validate(config, schema)
+
+    options = {
+        "commands": config["commands"],
+        "files": config["files"],
+        "filters": config["filters"],
+        "service_lines_number": config["journald_logs"]["lines_number"],
+        "service_names": config["journald_logs"]["names"],
+        "timeout": timeout or config["timeout"],
+    }
+    if server_mode:
+        options["broker"] = config["mqtt"]["broker"]
+        validate_broker_url(options["broker"])
+    return options
+
+
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(
         description="one-click diagnostic data collector for Wiren Board, generating archive with data"
@@ -59,7 +80,7 @@ def main(argv=sys.argv):
     )
 
     args = parser.parse_args(argv[1:])
-    conf_path = args.config
+    conf_path = args.config or DEFAULT_CONF_PATH
     server_mode = args.server or args.output_filename is None
 
     if server_mode:
@@ -75,23 +96,7 @@ def main(argv=sys.argv):
     logger.addHandler(handler)
 
     try:
-        with open(conf_path or DEFAULT_CONF_PATH, encoding="utf-8") as config_file:
-            config = json.load(config_file)
-        with open(SCHEMA_PATH, encoding="utf-8") as schema_file:
-            schema = json.load(schema_file)
-        jsonschema.validate(config, schema)
-
-        options = {
-            "commands": config["commands"],
-            "files": config["files"],
-            "filters": config["filters"],
-            "service_lines_number": config["journald_logs"]["lines_number"],
-            "service_names": config["journald_logs"]["names"],
-            "timeout": args.timeout or config["timeout"],
-        }
-        if server_mode:
-            options["broker"] = config["mqtt"]["broker"]
-            validate_broker_url(options["broker"])
+        options = load_options(conf_path, args.timeout, server_mode)
     except (
         OSError,
         TypeError,
@@ -99,7 +104,7 @@ def main(argv=sys.argv):
         jsonschema.SchemaError,
         jsonschema.ValidationError,
     ) as error:
-        logger.error("Cannot read config %s: %s", conf_path or DEFAULT_CONF_PATH, error)
+        logger.error("Cannot read config %s: %s", conf_path, error)
         return ResultCode.NOT_CONFIGURED
 
     if server_mode:
