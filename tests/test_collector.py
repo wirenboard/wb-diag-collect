@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import shutil
 import signal
@@ -8,9 +9,6 @@ from tempfile import TemporaryDirectory
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-import yaml
-from yaml.loader import SafeLoader
-
 from wb.diag.collector import Collector
 
 logger = logging.getLogger(__name__)
@@ -27,7 +25,7 @@ def collect_dir():
 
 @pytest.fixture
 def diag_collect_config():
-    return yaml.load(Path("./tests/data/wb-diag-collect.conf").read_text(encoding="utf-8"), Loader=SafeLoader)
+    return json.loads(Path("./tests/data/wb-diag-collect.conf").read_text(encoding="utf-8"))
 
 
 def test_filter_files(collect_dir, diag_collect_config):  # pylint:disable=redefined-outer-name

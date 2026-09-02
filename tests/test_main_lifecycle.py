@@ -1,7 +1,31 @@
+import json
 import logging
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from wb.diag import diag_collect, rpc_server
+
+
+def make_config(broker="unix:///run/mosquitto.sock"):
+    return {
+        "commands": [],
+        "files": [],
+        "filters": [],
+        "journald_logs": {"lines_number": 0, "names": []},
+        "mqtt": {"broker": broker},
+        "timeout": 1,
+    }
+
+
+@pytest.fixture(autouse=True)
+def use_source_schema(monkeypatch):
+    monkeypatch.setattr(
+        diag_collect,
+        "SCHEMA_PATH",
+        str(Path(__file__).parent.parent / "wb-diag-collect.schema.json"),
+    )
 
 
 def test_missing_config_returns_6(tmp_path):
@@ -11,27 +35,25 @@ def test_missing_config_returns_6(tmp_path):
 
 def test_malformed_config_returns_6(tmp_path):
     config = tmp_path / "broken.conf"
-    config.write_text("commands: [", encoding="utf-8")
+    config.write_text('{"commands": [', encoding="utf-8")
     result = diag_collect.main(["wb-diag-collect", "-s", "-c", str(config), "archive"])
     assert result == diag_collect.ResultCode.NOT_CONFIGURED
 
 
 def test_invalid_broker_url_returns_6(tmp_path):
     config = tmp_path / "wb-diag-collect.conf"
-    config.write_text(
-        """
-commands: []
-files: []
-filters: []
-journald_logs:
-  lines_number: 0
-  names: []
-mqtt:
-  broker: invalid://broker
-timeout: 1
-""",
-        encoding="utf-8",
-    )
+    config.write_text(json.dumps(make_config(broker="invalid://broker")), encoding="utf-8")
+
+    result = diag_collect.main(["wb-diag-collect", "-s", "-c", str(config), "archive"])
+
+    assert result == diag_collect.ResultCode.NOT_CONFIGURED
+
+
+def test_schema_validation_error_returns_6(tmp_path):
+    config_data = make_config()
+    config_data["commands"] = [{"filename": "missing-command"}]
+    config = tmp_path / "wb-diag-collect.conf"
+    config.write_text(json.dumps(config_data), encoding="utf-8")
 
     result = diag_collect.main(["wb-diag-collect", "-s", "-c", str(config), "archive"])
 
@@ -40,20 +62,7 @@ timeout: 1
 
 def test_no_arguments_starts_server_with_default_config(tmp_path):
     config = tmp_path / "wb-diag-collect.conf"
-    config.write_text(
-        """
-commands: []
-files: []
-filters: []
-journald_logs:
-  lines_number: 0
-  names: []
-mqtt:
-  broker: unix:///run/mosquitto.sock
-timeout: 1
-""",
-        encoding="utf-8",
-    )
+    config.write_text(json.dumps(make_config()), encoding="utf-8")
 
     with patch.object(diag_collect, "DEFAULT_CONF_PATH", str(config)), patch.object(
         diag_collect.rpc_server, "serve", return_value=diag_collect.ResultCode.NOT_RUNNING
