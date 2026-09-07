@@ -1,3 +1,9 @@
+wb-diag-collect (1.10.3) stable; urgency=medium
+
+  * Fix get_event_loop deprecation warning
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Fri, 04 Sep 2026 17:19:00 +0400
+
 wb-diag-collect (1.10.2) stable; urgency=medium
 
   * Increase wb-release log lines count to 5000
