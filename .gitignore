@@ -9,6 +9,7 @@
 
 debian/*
 .pybuild
+.pytest_cache
 
 venv
 
