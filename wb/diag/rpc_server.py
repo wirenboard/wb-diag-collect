@@ -42,7 +42,7 @@ class AsyncMQTTRPCServer:
         self._diag_collecting_task = None
 
     def _setup_event_loop(self):
-        self.asyncio_loop = asyncio.get_event_loop()
+        self.asyncio_loop = asyncio.new_event_loop()
         signals = [signal.SIGINT, signal.SIGTERM]
         for sig in signals:
             self.asyncio_loop.add_signal_handler(sig, self.asyncio_loop.stop)
@@ -148,13 +148,18 @@ class AsyncMQTTRPCServer:
 
 @contextmanager
 def rpc_server_context(options, dispatcher, logger):  # pylint:disable=redefined-outer-name
+    rpc_server = None
     try:
         rpc_server = AsyncMQTTRPCServer(options, dispatcher, logger)
         yield rpc_server
     except (TimeoutError, ConnectionRefusedError):
         logger.error("Cannot connect to broker %s", options["broker"], exc_info=True)
     finally:
-        rpc_server.stop()
+        if rpc_server is not None:
+            try:
+                rpc_server.stop()
+            finally:
+                rpc_server.asyncio_loop.close()
 
 
 def serve(options, logger):

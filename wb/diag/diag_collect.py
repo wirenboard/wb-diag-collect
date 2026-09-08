@@ -75,9 +75,7 @@ def main(argv=sys.argv):
 
             wb_archive_collector = collector.Collector(logger)
             started_at = time.monotonic()
-            asyncio.get_event_loop().run_until_complete(
-                wb_archive_collector.collect(options, "", args.output_filename[0])
-            )
+            asyncio.run(wb_archive_collector.collect(options, "", args.output_filename[0]))
             elapsed = time.monotonic() - started_at
 
             print(f"Data was collected successfully in {elapsed:.2f}s")
