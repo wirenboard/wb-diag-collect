@@ -97,6 +97,7 @@ def test_stop_reports_unconfirmed_retains(server, caplog):
     server.client.stop.assert_called_once_with()
 
     server.client.reset_mock()
+    server.client.publish.return_value.wait_for_publish.side_effect = None  # reset_mock() keeps it
     server.client.publish.return_value.is_published.return_value = False
     with caplog.at_level(logging.ERROR):
         server.stop()
