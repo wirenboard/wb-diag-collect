@@ -16,12 +16,6 @@ from wb.diag.rpc_server import (
     serve,
 )
 
-    EXIT_INVALIDARGUMENT,
-    EXIT_SUCCESS,
-    AsyncMQTTRPCServer,
-    serve,
-)
-
 logger = logging.getLogger(__name__)
 
 
