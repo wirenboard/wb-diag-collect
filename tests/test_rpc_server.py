@@ -9,6 +9,13 @@ import pytest
 from mqttrpc.dispatcher import Dispatcher
 
 from wb.diag.rpc_server import (
+    CLEAR_RETAINED_TIMEOUT_S,
+    EXIT_INVALIDARGUMENT,
+    EXIT_SUCCESS,
+    AsyncMQTTRPCServer,
+    serve,
+)
+
     EXIT_INVALIDARGUMENT,
     EXIT_SUCCESS,
     AsyncMQTTRPCServer,
@@ -77,6 +84,29 @@ def test_stop_clears_retains_when_connected(server):
             for service, method in server.dispatcher.keys()
         ],
     ]
+    # every clear is confirmed within the shared deadline before the client stops
+    waits = server.client.publish.return_value.wait_for_publish.call_args_list
+    assert len(waits) == 2
+    assert all(0 < wait.args[0] <= CLEAR_RETAINED_TIMEOUT_S for wait in waits)
+    server.client.stop.assert_called_once_with()
+
+
+def test_stop_reports_unconfirmed_retains(server, caplog):
+    """
+    The broker went away between the check and the publish (paho raises), or never confirms
+    (timeout): the stop logs an error and still ends cleanly.
+    """
+    server.client.publish.return_value.wait_for_publish.side_effect = RuntimeError("not connected")
+    with caplog.at_level(logging.ERROR):
+        server.stop()
+    assert "not confirmed: not connected" in caplog.text
+    server.client.stop.assert_called_once_with()
+
+    server.client.reset_mock()
+    server.client.publish.return_value.is_published.return_value = False
+    with caplog.at_level(logging.ERROR):
+        server.stop()
+    assert "not confirmed within 5 s" in caplog.text
     server.client.stop.assert_called_once_with()
 
 
