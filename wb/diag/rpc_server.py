@@ -1,12 +1,9 @@
 import asyncio
-import atexit
 import glob
 import json
 import os
 import signal
-import sys
 import time
-from contextlib import contextmanager
 
 from mqttrpc import dispatcher
 from mqttrpc.manager import AMQTTRPCResponseManager
@@ -14,7 +11,10 @@ from wb_common.mqtt_client import MQTTClient
 
 from wb.diag import collector
 
-EXIT_FAILURE = 1
+EXIT_SUCCESS = 0
+EXIT_INVALIDARGUMENT = 2
+# CONNACK codes for a rejected login: bad user name or password, not authorized
+MQTT_AUTH_ERRORS = (4, 5)
 
 
 class AsyncMQTTRPCServer:
@@ -25,6 +25,7 @@ class AsyncMQTTRPCServer:
         self.options = options
         self.logger = logger
         self.driver_id = "diag"
+        self.exit_code = EXIT_SUCCESS
 
         self._setup_event_loop()
 
@@ -51,19 +52,19 @@ class AsyncMQTTRPCServer:
     def _setup_mqtt_connection(self):
         self.client.on_message = self._on_message
         self.client.on_connect = self._on_connect
-        try:
-            self.client.start()
-        finally:
-            atexit.register(self.client.stop)
+        # an unavailable broker is retried by paho's network thread until stop()
+        self.client.start(retry_first_connection=True)
 
     def _on_connect(self, _client, _userdata, _flags, rc, *_):
-        # write graceful exit here + guideline
-        # https://wirenboard.bitrix24.ru/workgroups/group/218/tasks/task/view/55510/
         if rc != 0:
             self.logger.error("MQTT broker connection failed, code %d", rc)
-            self.asyncio_loop.stop()
-            sys.exit(EXIT_FAILURE)
+            if rc in MQTT_AUTH_ERRORS:
+                # a rejected login is a configuration problem, paho would retry it forever: exit with 2
+                self.exit_code = EXIT_INVALIDARGUMENT
+                self.asyncio_loop.call_soon_threadsafe(self.asyncio_loop.stop)
+            return
 
+        # the first connection and every reconnect: the broker holds none of our retained state
         self.logger.debug("Settings up RPC endpoints")
         for service, method in self.dispatcher.keys():
             self.client.publish(f"/rpc/v1/{self.driver_id}/{service}/{method}", "1", retain=True)
@@ -128,40 +129,41 @@ class AsyncMQTTRPCServer:
             self.publish_result(payload=None)
 
     def run(self):
+        """
+        Serve until SIGINT/SIGTERM or a rejected MQTT login; returns the exit code.
+        """
         self.asyncio_loop.run_forever()
 
-    def stop(self):
-        try:
-            self.logger.debug("Cleaning up retains")
-
-            self.publish_result(payload=None)
-
-            pubs = []
-            for service, method in self.dispatcher.keys():
-                pubs.append(self.client.publish(f"/rpc/v1/{self.driver_id}/{service}/{method}", retain=True))
-            for pub in pubs:
-                pub.wait_for_publish()
-        finally:
-            self.client.stop()
-            self.asyncio_loop.stop()
-
-
-@contextmanager
-def rpc_server_context(options, dispatcher, logger):  # pylint:disable=redefined-outer-name
-    rpc_server = None
-    try:
-        rpc_server = AsyncMQTTRPCServer(options, dispatcher, logger)
-        yield rpc_server
-    except (TimeoutError, ConnectionRefusedError):
-        logger.error("Cannot connect to broker %s", options["broker"], exc_info=True)
-    finally:
-        if rpc_server is not None:
+        if self._diag_collecting_task and not self._diag_collecting_task.done():
+            self.logger.info("Cancelling the running diagnostics collection")
+            self._diag_collecting_task.cancel()
             try:
-                rpc_server.stop()
-            finally:
-                rpc_server.asyncio_loop.close()
+                self.asyncio_loop.run_until_complete(self._diag_collecting_task)
+            except asyncio.CancelledError:
+                pass
+        return self.exit_code
+
+    def stop(self):
+        if self.client.is_connected():
+            self.logger.debug("Cleaning up retains")
+            self.publish_result(payload=None)
+            for service, method in self.dispatcher.keys():
+                self.client.publish(f"/rpc/v1/{self.driver_id}/{service}/{method}", retain=True)
+        else:
+            self.logger.error("MQTT broker is not connected, retained topics cannot be removed")
+        # loop_stop() inside waits for the publishes above to be acknowledged
+        self.client.stop()
 
 
 def serve(options, logger):
-    with rpc_server_context(options, dispatcher, logger) as server:
-        server.run()
+    """
+    Run the RPC server until it is stopped; returns the exit code.
+    """
+    server = AsyncMQTTRPCServer(options, dispatcher, logger)
+    try:
+        return server.run()
+    finally:
+        try:
+            server.stop()
+        finally:
+            server.asyncio_loop.close()
