@@ -13,6 +13,8 @@ from wb.diag import collector
 
 EXIT_SUCCESS = 0
 EXIT_INVALIDARGUMENT = 2
+# one deadline for confirming all the retained clears at stop; well below systemd's TimeoutStopSec
+CLEAR_RETAINED_TIMEOUT_S = 5.0
 # CONNACK codes for a rejected login: bad user name or password, not authorized
 MQTT_AUTH_ERRORS = (4, 5)
 
@@ -147,12 +149,30 @@ class AsyncMQTTRPCServer:
         if self.client.is_connected():
             self.logger.debug("Cleaning up retains")
             self.publish_result(payload=None)
-            for service, method in self.dispatcher.keys():
+            pubs = [
                 self.client.publish(f"/rpc/v1/{self.driver_id}/{service}/{method}", retain=True)
+                for service, method in self.dispatcher.keys()
+            ]
+            self._wait_published(pubs)
         else:
             self.logger.error("MQTT broker is not connected, retained topics cannot be removed")
-        # loop_stop() inside waits for the publishes above to be acknowledged
         self.client.stop()
+
+    def _wait_published(self, pubs):
+        """
+        Wait for the retained clears within one shared deadline; a failure is logged, never raised.
+        """
+        deadline = time.monotonic() + CLEAR_RETAINED_TIMEOUT_S
+        try:
+            for pub in pubs:
+                pub.wait_for_publish(max(0.0, deadline - time.monotonic()))
+        except (RuntimeError, ValueError) as exc:  # paho: the client is not connected / queue full
+            self.logger.error("Removal of the retained topics is not confirmed: %s", exc)
+            return
+        if not all(pub.is_published() for pub in pubs):
+            self.logger.error(
+                "Removal of the retained topics is not confirmed within %.0f s", CLEAR_RETAINED_TIMEOUT_S
+            )
 
 
 def serve(options, logger):
