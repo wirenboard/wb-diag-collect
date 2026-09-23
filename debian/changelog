@@ -1,3 +1,16 @@
+wb-diag-collect (1.11.0) stable; urgency=medium
+
+  * Exit with 6 on a missing or invalid config, with 2 on a rejected MQTT login
+  * Wait for an unavailable MQTT broker instead of exiting
+  * Cancel the running collection and kill its child processes on SIGINT/SIGTERM,
+    remove the RPC topics only when the broker is connected, wait for the confirmation
+    up to 5 seconds without a traceback, exit 0
+  * Require python3-wb-common >= 2.4.0 for start(retry_first_connection=True); the build now also depends on it and on python3-mqttrpc, which the tests import
+  * Treat a broker URL the MQTT client cannot use as a configuration error (exit 6) instead of crashing with 1
+  * systemd: do not restart on exit codes 2 and 6 (RestartPreventExitStatus)
+
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Thu, 17 Sep 2026 15:53:57 +0000
+
 wb-diag-collect (1.10.3) stable; urgency=medium
 
   * Fix get_event_loop deprecation warning

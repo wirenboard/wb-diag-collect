@@ -128,3 +128,47 @@ async def test_collect_with_command_timeout():
 
         assert Path(result).exists()
         assert result.endswith(".zip")
+
+
+@pytest.mark.asyncio
+async def test_cancelled_collection_terminates_the_child_process():
+    """
+    A SIGTERM cancels the collection task; the child process must not outlive the service.
+    """
+    collector = Collector(logger)
+    started, terminated = asyncio.Event(), asyncio.Event()
+
+    async def wait_until_terminated():
+        started.set()
+        await terminated.wait()
+
+    fake_proc = Mock(pid=4242, wait=wait_until_terminated)
+
+    with TemporaryDirectory() as tmpdir:
+        with patch(
+            "wb.diag.collector.asyncio.create_subprocess_shell", new=AsyncMock(return_value=fake_proc)
+        ):
+            with patch("wb.diag.collector.os.killpg", side_effect=lambda *_: terminated.set()) as killpg_mock:
+                task = asyncio.create_task(
+                    collector.execute_commands(tmpdir, [{"filename": "slow", "command": "sleep 30"}], 10)
+                )
+                await started.wait()
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+
+    killpg_mock.assert_called_once_with(4242, signal.SIGTERM)
+
+
+@pytest.mark.asyncio
+async def test_copy_files_keeps_the_source_layout():
+    collector = Collector(logger)
+
+    with TemporaryDirectory() as source, TemporaryDirectory() as target:
+        Path(f"{source}/etc").mkdir()
+        Path(f"{source}/etc/wb-diag-collect.conf").write_text("timeout: 5\n", encoding="utf-8")
+
+        await collector.copy_files(target, [f"{source}/etc/*.conf", "/nonexistent/*"])
+
+        copied = Path(f"{target}{source}/etc/wb-diag-collect.conf")
+        assert copied.read_text(encoding="utf-8") == "timeout: 5\n"

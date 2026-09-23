@@ -12,6 +12,10 @@ Service (`systemctl status wb-diag-collect.service`):
  - [ ] publishes its RPC endpoints on start
  - [ ] publishes its RPC endpoints after Mosquitto restart
  - [ ] removes its RPC endpoints on stop
+ - [ ] waits for Mosquitto instead of exiting when started while Mosquitto is stopped
+ - [ ] logs one error and still exits with code 0 when stopped while Mosquitto is stopped
+ - [ ] cancels a running collection and kills its child processes on SIGINT/SIGTERM
+ - [ ] exits with code 6 on a missing or invalid config and is not restarted by systemd
 
 wb-diag-collect specific
 ------------------------
