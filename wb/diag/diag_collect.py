@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 from enum import IntEnum
+from urllib.parse import urlparse
 
 import yaml
 from systemd.journal import JournalHandler
@@ -18,10 +19,44 @@ class ResultCode(IntEnum):
     OK = 0
     OPERATION_ERROR = 1
     USER_INPUT_ERROR = 2
+    NOT_CONFIGURED = 6
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def check_broker_url(url: str) -> str:
+    """
+    The broker URL forms wb-common's MQTTClient accepts; anything else is a configuration error.
+    The message never repeats the URL: it may carry a password.
+    """
+    parsed = urlparse(str(url))  # YAML may hand over a number or None instead of a string
+    if parsed.scheme == "unix" and parsed.path:
+        return url
+    if parsed.scheme in ("tcp", "mqtt-tcp", "ws") and parsed.hostname and parsed.port:
+        return url
+    raise ValueError("broker URL must be unix:///path or tcp://host:port (also mqtt-tcp://, ws://)")
+
+
+def read_options(conf_path, args):
+    """
+    Raises OSError, yaml.YAMLError, KeyError, TypeError or ValueError on a missing or invalid config.
+    """
+    with open(conf_path, encoding="utf-8") as f:
+        yaml_data = yaml.load(f, Loader=SafeLoader)
+
+    options = {
+        "commands": yaml_data["commands"] or [],
+        "files": yaml_data["files"] or [],
+        "filters": yaml_data["filters"] or [],
+        "service_lines_number": yaml_data["journald_logs"]["lines_number"] or 0,
+        "service_names": yaml_data["journald_logs"]["names"],
+        "timeout": args.timeout or yaml_data["timeout"],
+    }
+    if args.server:
+        options["broker"] = check_broker_url(yaml_data["mqtt"]["broker"])
+    return options
 
 
 def main(argv=sys.argv):
@@ -39,7 +74,7 @@ def main(argv=sys.argv):
     )
 
     args = parser.parse_args(argv[1:])
-    conf_path = args.config
+    conf_path = args.config or DEFAULT_CONF_PATH
 
     if args.server:
         handler = JournalHandler(SYSLOG_IDENTIFIER="wb-diag-collect")
@@ -54,35 +89,26 @@ def main(argv=sys.argv):
     logger.addHandler(handler)
 
     try:
-        with open(conf_path or DEFAULT_CONF_PATH, encoding="utf-8") as f:
-            yaml_data = yaml.load(f, Loader=SafeLoader)
+        options = read_options(conf_path, args)
+    except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError) as e:
+        logger.error("Cannot read config %s: %s", conf_path, e)
+        return ResultCode.NOT_CONFIGURED
 
-            options = {}
-            options["commands"] = yaml_data["commands"] or []
-            options["files"] = yaml_data["files"] or []
-            options["filters"] = yaml_data["filters"] or []
-            options["service_lines_number"] = yaml_data["journald_logs"]["lines_number"] or 0
-            options["service_names"] = yaml_data["journald_logs"]["names"]
-            options["timeout"] = args.timeout or yaml_data["timeout"]
+    if args.server:
+        return rpc_server.serve(options, logger)
 
-            if args.server:
-                options["broker"] = yaml_data["mqtt"]["broker"]
+    try:
+        print("Start data collecting")
 
-        if args.server:
-            rpc_server.serve(options, logger)
-        else:
-            print("Start data collecting")
+        wb_archive_collector = collector.Collector(logger)
+        started_at = time.monotonic()
+        asyncio.run(wb_archive_collector.collect(options, "", args.output_filename[0]))
+        elapsed = time.monotonic() - started_at
 
-            wb_archive_collector = collector.Collector(logger)
-            started_at = time.monotonic()
-            asyncio.run(wb_archive_collector.collect(options, "", args.output_filename[0]))
-            elapsed = time.monotonic() - started_at
-
-            print(f"Data was collected successfully in {elapsed:.2f}s")
-
+        print(f"Data was collected successfully in {elapsed:.2f}s")
         return ResultCode.OK
     except OSError as e:
-        print("OSError: with file %s, errno %d", e.filename, e.errno)
+        print(f"OSError: with file {e.filename}, errno {e.errno}")
         return ResultCode.OPERATION_ERROR
 
 
