@@ -45,8 +45,24 @@ def test_server_without_broker_in_config_exits_not_configured(tmp_path):
 
 @pytest.mark.parametrize(
     "broker",
-    ["tcp://user:secret@localhost", "foo://x", "unix://", "tcp://:1883", "tcp://host:abc", 1883],
-    ids=["no-port", "unknown-scheme", "no-socket-path", "no-host", "bad-port", "not-a-string"],
+    [
+        "tcp://user:secret@localhost",
+        "tcp://user:secret#x@localhost:1883",
+        "foo://x",
+        "unix://",
+        "tcp://:1883",
+        "tcp://host:abc",
+        1883,
+    ],
+    ids=[
+        "no-port",
+        "hash-in-password",
+        "unknown-scheme",
+        "no-socket-path",
+        "no-host",
+        "bad-port",
+        "not-a-string",
+    ],
 )
 def test_server_with_unusable_broker_url_exits_not_configured(tmp_path, caplog, broker):
     """

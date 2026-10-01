@@ -31,11 +31,14 @@ def check_broker_url(url: str) -> str:
     The broker URL forms wb-common's MQTTClient accepts; anything else is a configuration error.
     The message never repeats the URL: it may carry a password.
     """
-    parsed = urlparse(str(url))  # YAML may hand over a number or None instead of a string
-    if parsed.scheme == "unix" and parsed.path:
-        return url
-    if parsed.scheme in ("tcp", "mqtt-tcp", "ws") and parsed.hostname and parsed.port:
-        return url
+    try:
+        parsed = urlparse(str(url))  # YAML may hand over a number or None instead of a string
+        if parsed.scheme == "unix" and parsed.path:
+            return url
+        if parsed.scheme in ("tcp", "mqtt-tcp", "ws") and parsed.hostname and parsed.port:
+            return url
+    except ValueError:
+        pass
     raise ValueError("broker URL must be unix:///path or tcp://host:port (also mqtt-tcp://, ws://)")
 
 
