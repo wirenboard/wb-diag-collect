@@ -81,6 +81,16 @@ class Collector:
                 pass
             await proc.wait()
 
+    async def wait_for_process(self, proc, timeout):
+        """
+        Wait for the process; kill its group when the timeout expires or the collection is cancelled.
+        """
+        try:
+            return await asyncio.wait_for(proc.wait(), timeout=timeout)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            await self.terminate_process_group(proc)
+            raise
+
     async def apply_file_wildcard(self, wildcard: str, timeout):
         cmd = f"find {wildcard} -type f,l"
         proc = None
@@ -92,7 +102,7 @@ class Collector:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
-            rc = await asyncio.wait_for(proc.wait(), timeout=timeout)
+            rc = await self.wait_for_process(proc, timeout)
             if rc != 0:
                 self.logger.debug("No files for wildcard %s", wildcard)
                 return []
@@ -106,8 +116,6 @@ class Collector:
 
             return file_paths
         except asyncio.TimeoutError:
-            if proc is not None:
-                await self.terminate_process_group(proc)
             self.logger.warning("Timeout expired while processing wildcard %s", wildcard)
             return []
 
@@ -148,10 +156,8 @@ class Collector:
                         stdout=file,
                         stderr=asyncio.subprocess.STDOUT,
                     )  # nosec B602
-                    await asyncio.wait_for(proc.wait(), timeout=timeout)
+                    await self.wait_for_process(proc, timeout)
                 except asyncio.TimeoutError:
-                    if proc is not None:
-                        await self.terminate_process_group(proc)
                     self.logger.warning(
                         "Command `%s` exceeded timeout of %ds and was terminated",
                         command,
@@ -197,9 +203,8 @@ class Collector:
                         stdout=file,
                         stderr=asyncio.subprocess.STDOUT,  # nosec B602
                     )
-                    await asyncio.wait_for(proc.wait(), timeout=timeout)
+                    await self.wait_for_process(proc, timeout)
                 except asyncio.TimeoutError:
-                    await self.terminate_process_group(proc)
                     self.logger.warning(
                         "Journalctl reading %s exceeded timeout of %ds and was terminated",
                         command,
