@@ -1,3 +1,9 @@
+wb-diag-collect (1.11.2) stable; urgency=medium
+
+  * Add /etc/wb-mqtt-dali.conf
+
+ -- Petr Krasnoshchekov <petr.krasnoshchekov@wirenboard.com>  Thu, 05 Nov 2026 15:10:50 +0500
+
 wb-diag-collect (1.11.1) stable; urgency=medium
 
   * Fix wb-rules-metrics collection
