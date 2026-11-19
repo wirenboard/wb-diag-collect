@@ -1,3 +1,9 @@
+wb-diag-collect (1.12.0) stable; urgency=medium
+
+  * Add firmware info of Modbus devices from wb-mqtt-serial
+
+ -- Ilya Titov <ilya.titov@wirenboard.com>  Thu, 19 Nov 2026 14:52:09 +0300
+
 wb-diag-collect (1.11.2) stable; urgency=medium
 
   * Add /etc/wb-mqtt-dali.conf

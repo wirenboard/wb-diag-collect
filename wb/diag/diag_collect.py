@@ -57,7 +57,7 @@ def read_options(conf_path, args):
         "service_names": yaml_data["journald_logs"]["names"],
         "timeout": args.timeout or yaml_data["timeout"],
     }
-    if args.server:
+    if args.server or "mqtt" in yaml_data:
         options["broker"] = check_broker_url(yaml_data["mqtt"]["broker"])
     return options
 

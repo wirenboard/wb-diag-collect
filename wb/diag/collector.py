@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import glob
+import json
 import logging
 import os
 import re
@@ -9,6 +10,14 @@ import signal
 from fnmatch import fnmatch
 from io import StringIO
 from tempfile import TemporaryDirectory
+
+from mqttrpc.client import MQTTRPCError
+from mqttrpc.client import TimeoutError as RPCTimeoutError
+from mqttrpc.client import TMQTTRPCClient
+from wb_common.mqtt_client import MQTTClient
+
+SERIAL_DRIVER = "wb-mqtt-serial"
+RPC_TIMEOUT_S = 10.0
 
 
 class Collector:
@@ -31,6 +40,8 @@ class Collector:
                 await self.copy_files(tmpdir, options["files"])
                 self.filter_files(tmpdir, options["filters"])
                 await self.execute_commands(tmpdir, options["commands"], options["timeout"])
+                if "broker" in options:
+                    await self.collect_modbus_devices(tmpdir, options["broker"])
                 await self.copy_journalctl(
                     tmpdir, options["service_names"], options["service_lines_number"], options["timeout"]
                 )
@@ -164,6 +175,65 @@ class Collector:
                         timeout,
                         exc_info=(self.logger.level <= logging.DEBUG),
                     )
+
+    @staticmethod
+    async def call_serial_rpc(rpc_client, service, method, params):
+        future = rpc_client.call_async(SERIAL_DRIVER, service, method, params)
+        return await asyncio.to_thread(future.result, RPC_TIMEOUT_S)
+
+    async def read_port_devices(self, rpc_client, port):
+        if "path" in port:
+            port_settings = {
+                key: port[key] for key in ("path", "baud_rate", "parity", "data_bits", "stop_bits")
+            }
+        else:
+            port_settings = {"address": port["ip"], "port": port["port"]}
+        protocol = "modbus-tcp" if port.get("mode") == "modbus-tcp" else "modbus"
+
+        devices = []
+        for device in port["devices"]:
+            if device.get("protocol") != "modbus" or "slave_id" not in device:
+                continue
+            info = {
+                "device_id": device["device_id"],
+                "device_type": device.get("device_type"),
+                "slave_id": device["slave_id"],
+                "port": port_settings,
+            }
+            devices.append(info)
+            try:
+                info["firmware"] = await self.call_serial_rpc(
+                    rpc_client,
+                    "fw-update",
+                    "GetFirmwareInfo",
+                    {"slave_id": int(device["slave_id"], 0), "port": port_settings, "protocol": protocol},
+                )
+            except ValueError:
+                info["error"] = "invalid slave_id"
+            except MQTTRPCError as e:
+                info["error"] = e.data or e.rpc_message
+            except RPCTimeoutError:
+                # the driver does not answer at all, the rest of the port would wait for nothing too
+                info["error"] = "no reply from " + SERIAL_DRIVER
+                break
+        return devices
+
+    async def collect_modbus_devices(self, directory, broker):
+        client = MQTTClient("wb-diag-collect", broker)
+        rpc_client = TMQTTRPCClient(client)
+        client.on_message = rpc_client.on_mqtt_message
+        try:
+            client.start()
+            ports = (await self.call_serial_rpc(rpc_client, "ports", "List", {}))["ports"]
+            devices = await asyncio.gather(*(self.read_port_devices(rpc_client, port) for port in ports))
+        except (OSError, MQTTRPCError, RPCTimeoutError) as e:
+            self.logger.warning("Cannot read Modbus devices firmware info: %s", repr(e))
+            return
+        finally:
+            client.stop()
+
+        with open(f"{directory}/modbus_devices.json", "w", encoding="utf-8") as file:
+            json.dump([info for port_devices in devices for info in port_devices], file, indent=4)
 
     async def copy_journalctl(
         self, directory, service_wildcards, lines_count, timeout
