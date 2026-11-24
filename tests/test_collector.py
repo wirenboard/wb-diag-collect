@@ -172,7 +172,7 @@ PORTS = [
         "stop_bits": 2,
         "devices": [
             {"device_id": "wb-mr6c_221", "device_type": "WB-MR6C", "protocol": "modbus", "slave_id": "221"},
-            {"device_id": "wb-led_97", "device_type": "WB-LED", "protocol": "modbus", "slave_id": "0x61"},
+            {"device_id": "wb-led_97", "device_type": "WB-LED", "protocol": "modbus", "slave_id": "97"},
             {
                 "device_id": "meter",
                 "device_type": "energomera_iec",
@@ -207,7 +207,7 @@ def fake_serial_rpc(fw_info_reply):
 @pytest.mark.asyncio
 async def test_collect_modbus_devices():
     def fw_info_reply(params):
-        if params["slave_id"] == 97:
+        if params["device_id"] == "wb-led_97":
             raise MQTTRPCError("Server error", -32000, "Device not responding")
         return {"fw": "1.27.0", "fw_signature": "mr6G", "sn": "276142"}
 
@@ -220,22 +220,14 @@ async def test_collect_modbus_devices():
 
         devices = json.loads(Path(f"{tmpdir}/modbus_devices.json").read_text(encoding="utf-8"))
 
-    assert [(params["slave_id"], params["protocol"]) for _, _, params in calls[1:]] == [
-        (221, "modbus"),
-        (97, "modbus"),
-        (1, "modbus-tcp"),
+    assert [params for _, _, params in calls[1:]] == [
+        {"device_id": "wb-mr6c_221"},
+        {"device_id": "wb-led_97"},
+        {"device_id": "wb-mr6c_1"},
     ]
     assert [device["device_id"] for device in devices] == ["wb-mr6c_221", "wb-led_97", "wb-mr6c_1"]
     assert devices[0]["firmware"]["sn"] == "276142"
-    assert devices[0]["port"] == {
-        "path": "/dev/ttyRS485-1",
-        "baud_rate": 115200,
-        "parity": "N",
-        "data_bits": 8,
-        "stop_bits": 2,
-    }
     assert devices[1]["error"] == "Device not responding"
-    assert devices[2]["port"] == {"address": "192.168.1.20", "port": 502}
 
 
 @pytest.mark.asyncio

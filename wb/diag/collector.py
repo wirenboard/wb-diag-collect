@@ -182,34 +182,16 @@ class Collector:
         return await asyncio.to_thread(future.result, RPC_TIMEOUT_S)
 
     async def read_port_devices(self, rpc_client, port):
-        if "path" in port:
-            port_settings = {
-                key: port[key] for key in ("path", "baud_rate", "parity", "data_bits", "stop_bits")
-            }
-        else:
-            port_settings = {"address": port["ip"], "port": port["port"]}
-        protocol = "modbus-tcp" if port.get("mode") == "modbus-tcp" else "modbus"
-
         devices = []
         for device in port["devices"]:
-            if device.get("protocol") != "modbus" or "slave_id" not in device:
+            if device.get("protocol") != "modbus":
                 continue
-            info = {
-                "device_id": device["device_id"],
-                "device_type": device.get("device_type"),
-                "slave_id": device["slave_id"],
-                "port": port_settings,
-            }
+            info = {"device_id": device["device_id"], "device_type": device.get("device_type")}
             devices.append(info)
             try:
                 info["firmware"] = await self.call_serial_rpc(
-                    rpc_client,
-                    "fw-update",
-                    "GetFirmwareInfo",
-                    {"slave_id": int(device["slave_id"], 0), "port": port_settings, "protocol": protocol},
+                    rpc_client, "fw-update", "GetFirmwareInfo", {"device_id": device["device_id"]}
                 )
-            except ValueError:
-                info["error"] = "invalid slave_id"
             except MQTTRPCError as e:
                 info["error"] = e.data or e.rpc_message
             except RPCTimeoutError:
