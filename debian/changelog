@@ -2,7 +2,16 @@ wb-diag-collect (1.12.0) stable; urgency=medium
 
   * Add firmware info of Modbus devices from wb-mqtt-serial
 
- -- Ilya Titov <ilya.titov@wirenboard.com>  Thu, 19 Nov 2026 14:52:09 +0300
+ -- Ilya Titov <ilya.titov@wirenboard.com>  Wed, 25 Nov 2026 14:02:13 +0300
+
+wb-diag-collect (1.11.3) stable; urgency=medium
+
+  * Read the factoryreset.fit metadata with "ufit info" (wb-configs) instead
+    of fdtget, which loaded the whole image (~230 MB) into memory on every
+    collection; the output now also lists the images with their sizes and
+    hashes
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 24 Nov 2026 12:00:00 +0400
 
 wb-diag-collect (1.11.2) stable; urgency=medium
 
