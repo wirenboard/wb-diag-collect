@@ -1,10 +1,31 @@
-wb-diag-collect (1.11.3) stable; urgency=medium
+wb-diag-collect (1.12.2) stable; urgency=medium
 
   * Switch the license to The WB License (MIT-WB): Wiren Board
     as the copyright holder, 2021 as the first publication year, use restricted to Wiren Board equipment
   * Fill debian/copyright in the DEP-5 format
 
- -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Thu, 12 Nov 2026 15:46:43 +0300
+ -- Ekaterina Volkova <ekaterina.volkova@wirenboard.com>  Thu, 26 Nov 2026 18:13:55 +0300
+
+wb-diag-collect (1.12.1) stable; urgency=medium
+
+  * Add /etc/wb-mqtt-iec104.conf
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Thu, 26 Nov 2026 01:30:00 +0400
+
+wb-diag-collect (1.12.0) stable; urgency=medium
+
+  * Add firmware info of Modbus devices from wb-mqtt-serial
+
+ -- Ilya Titov <ilya.titov@wirenboard.com>  Wed, 25 Nov 2026 14:02:13 +0300
+
+wb-diag-collect (1.11.3) stable; urgency=medium
+
+  * Read the factoryreset.fit metadata with "ufit info" (wb-configs) instead
+    of fdtget, which loaded the whole image (~230 MB) into memory on every
+    collection; the output now also lists the images with their sizes and
+    hashes
+
+ -- Nikolay Korotkiy <nikolay.korotkiy@wirenboard.com>  Tue, 24 Nov 2026 12:00:00 +0400
 
 wb-diag-collect (1.11.2) stable; urgency=medium
 

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import shutil
 import signal
@@ -9,6 +10,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import yaml
+from mqttrpc.client import MQTTRPCError
+from mqttrpc.client import TimeoutError as RPCTimeoutError
 from yaml.loader import SafeLoader
 
 from wb.diag.collector import Collector
@@ -158,6 +161,105 @@ async def test_cancelled_collection_terminates_the_child_process():
                     await task
 
     killpg_mock.assert_called_once_with(4242, signal.SIGTERM)
+
+
+PORTS = [
+    {
+        "path": "/dev/ttyRS485-1",
+        "baud_rate": 115200,
+        "data_bits": 8,
+        "parity": "N",
+        "stop_bits": 2,
+        "devices": [
+            {"device_id": "wb-mr6c_221", "device_type": "WB-MR6C", "protocol": "modbus", "slave_id": "221"},
+            {"device_id": "wb-led_97", "device_type": "WB-LED", "protocol": "modbus", "slave_id": "97"},
+            {
+                "device_id": "meter",
+                "device_type": "energomera_iec",
+                "protocol": "energomera_iec",
+                "slave_id": "1",
+            },
+        ],
+    },
+    {
+        "ip": "192.168.1.20",
+        "port": 502,
+        "mode": "modbus-tcp",
+        "devices": [
+            {"device_id": "wb-mr6c_1", "device_type": "WB-MR6C", "protocol": "modbus", "slave_id": "1"}
+        ],
+    },
+]
+
+
+def fake_serial_rpc(fw_info_reply):
+    calls = []
+
+    async def call(_rpc_client, service, method, params):
+        calls.append((service, method, params))
+        if (service, method) == ("ports", "List"):
+            return {"ports": PORTS}
+        return fw_info_reply(params)
+
+    return call, calls
+
+
+@pytest.mark.asyncio
+async def test_collect_modbus_devices():
+    def fw_info_reply(params):
+        if params["device_id"] == "wb-led_97":
+            raise MQTTRPCError("Server error", -32000, "Device not responding")
+        return {"fw": "1.27.0", "fw_signature": "mr6G", "sn": "276142"}
+
+    call, calls = fake_serial_rpc(fw_info_reply)
+    collector = Collector(logger)
+
+    with TemporaryDirectory() as tmpdir:
+        with patch("wb.diag.collector.MQTTClient"), patch.object(collector, "call_serial_rpc", new=call):
+            await collector.collect_modbus_devices(tmpdir, "unix:///var/run/mosquitto/mosquitto.sock")
+
+        devices = json.loads(Path(f"{tmpdir}/modbus_devices.json").read_text(encoding="utf-8"))
+
+    assert [params for _, _, params in calls[1:]] == [
+        {"device_id": "wb-mr6c_221"},
+        {"device_id": "wb-led_97"},
+        {"device_id": "wb-mr6c_1"},
+    ]
+    assert [device["device_id"] for device in devices] == ["wb-mr6c_221", "wb-led_97", "wb-mr6c_1"]
+    assert devices[0]["firmware"]["sn"] == "276142"
+    assert devices[1]["error"] == "Device not responding"
+
+
+@pytest.mark.asyncio
+async def test_collect_modbus_devices_stops_port_when_driver_does_not_answer():
+    def fw_info_reply(_params):
+        raise RPCTimeoutError()
+
+    call, calls = fake_serial_rpc(fw_info_reply)
+    collector = Collector(logger)
+
+    with TemporaryDirectory() as tmpdir:
+        with patch("wb.diag.collector.MQTTClient"), patch.object(collector, "call_serial_rpc", new=call):
+            await collector.collect_modbus_devices(tmpdir, "unix:///var/run/mosquitto/mosquitto.sock")
+
+        devices = json.loads(Path(f"{tmpdir}/modbus_devices.json").read_text(encoding="utf-8"))
+
+    # one request per port
+    assert len(calls) == 3
+    assert [device["error"] for device in devices] == ["no reply from wb-mqtt-serial"] * 2
+
+
+@pytest.mark.asyncio
+async def test_collect_modbus_devices_without_broker():
+    collector = Collector(logger)
+
+    with TemporaryDirectory() as tmpdir:
+        with patch("wb.diag.collector.MQTTClient") as client_class:
+            client_class.return_value.start.side_effect = FileNotFoundError
+            await collector.collect_modbus_devices(tmpdir, "unix:///var/run/mosquitto/mosquitto.sock")
+
+        assert not Path(f"{tmpdir}/modbus_devices.json").exists()
+    client_class.return_value.stop.assert_called_once_with()
 
 
 @pytest.mark.asyncio

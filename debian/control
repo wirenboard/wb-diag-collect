@@ -31,7 +31,8 @@ Depends: ${misc:Depends},
          curl,
          emmcparm (>= 5.0.0),
          jq,
-         mqtt-tools
+         mqtt-tools,
+         wb-configs (>= 3.54.0~~)
 Recommends: wb-mqtt-homeui (>= 2.111.0~~)
 Description: Wirenboard collector of data and logs
  one-click diagnostic data collector for Wiren Board, generating archive with data.
