@@ -13,7 +13,7 @@ setup(
     name="wb-diag-collect",
     version=get_version(),
     description="Diagnostic collector",
-    license="MIT",
+    license="MIT-WB",
     author="Sokolov Semen",
     author_email="s.sokolov@wirenboard.ru",
     maintainer="Wiren Board Team",
