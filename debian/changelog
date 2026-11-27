@@ -1,3 +1,9 @@
+wb-diag-collect (1.12.2) stable; urgency=medium
+
+  * Add /etc/wb-mqtt-alice-client.conf and /etc/wb-mqtt-alice-devices.conf
+
+ -- Valerii Trofimov <valeriy.trofimov@wirenboard.com>  Fri, 27 Nov 2026 15:05:00 +0300
+
 wb-diag-collect (1.12.1) stable; urgency=medium
 
   * Add /etc/wb-mqtt-iec104.conf
